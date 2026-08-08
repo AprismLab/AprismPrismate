@@ -45,6 +45,7 @@ public final class PrismateBootstrap {
 
     private final HostBridge bridge;
     private EmbeddedRuntime runtime;
+    private BootOutcome bootOutcome;
 
     /**
      * @param bridge the host loader bridge
@@ -56,19 +57,26 @@ public final class PrismateBootstrap {
     /**
      * Runs the mutual-exclusion guard, loads configuration, and drives the
      * full load pipeline. Never throws; every failure mode is logged and
-     * reflected in the returned outcome.
+     * reflected in the returned outcome. Idempotent: after the first call,
+     * subsequent calls return the recorded outcome without re-running the
+     * pipeline (Fabric invokes both {@code preLaunch} and {@code main}).
      *
      * @return the boot outcome
      */
     public BootOutcome bootEarly() {
+        if (bootOutcome != null) {
+            return bootOutcome;
+        }
         if (AgentConflictDetector.isAprismAgentPresent()) {
             bridge.log(AgentConflictDetector.refusalMessage());
-            return BootOutcome.AGENT_CONFLICT;
+            bootOutcome = BootOutcome.AGENT_CONFLICT;
+            return bootOutcome;
         }
         PrismateConfig config = PrismateConfig.load(bridge.gameDir());
         if (!config.isEnabled()) {
             bridge.log("AprismPrismate is disabled via configuration; no work will be done");
-            return BootOutcome.DISABLED;
+            bootOutcome = BootOutcome.DISABLED;
+            return bootOutcome;
         }
         bridge.log("AprismPrismate " + PrismateVersion.prismateVersion()
                 + " booting on " + bridge.loaderName() + " " + bridge.hostLoaderVersion()
@@ -77,11 +85,12 @@ public final class PrismateBootstrap {
         runtime = EmbeddedRuntime.create(bridge, config);
         try {
             runtime.boot();
+            bootOutcome = BootOutcome.OK;
         } catch (RuntimeException e) {
             bridge.log("AprismPrismate boot failed: " + e);
-            return BootOutcome.BOOT_FAILED;
+            bootOutcome = BootOutcome.BOOT_FAILED;
         }
-        return BootOutcome.OK;
+        return bootOutcome;
     }
 
     /**

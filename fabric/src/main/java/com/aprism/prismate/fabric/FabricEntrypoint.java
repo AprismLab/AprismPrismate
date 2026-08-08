@@ -21,6 +21,9 @@ public final class FabricEntrypoint implements ModInitializer {
     @Override
     public void onInitialize() {
         PrismateBootstrap bootstrap = FabricPrismateState.getOrCreate();
+        // The pipeline normally already ran in preLaunch (required for Mixin
+        // passthrough); bootEarly() is idempotent, so this also covers hosts
+        // that skip preLaunch for any reason.
         PrismateBootstrap.BootOutcome outcome = bootstrap.bootEarly();
         if (outcome != PrismateBootstrap.BootOutcome.OK) {
             return; // refused (agent conflict), disabled, or boot failed

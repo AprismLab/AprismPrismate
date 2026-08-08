@@ -320,7 +320,17 @@ public final class EmbeddedRuntime {
                 if (pack.resourcesDir() != null) {
                     bridge.injectResourceDir(pack.resourcesDir());
                 }
-                for (String mixinConfig : pack.mixinConfigs()) {
+                // Mixin configs: register every config the manifest declares
+                // (the authoritative list, resolvable through the injected mod
+                // jar) plus any config found under mixins/ that the manifest
+                // forgot to declare. Mirrors Aprism core's manifest-driven
+                // registerMixins semantics.
+                java.util.LinkedHashSet<String> mixinConfigs = new java.util.LinkedHashSet<>();
+                if (pack.manifest().mixins() != null) {
+                    mixinConfigs.addAll(pack.manifest().mixins());
+                }
+                mixinConfigs.addAll(pack.mixinConfigs());
+                for (String mixinConfig : mixinConfigs) {
                     bridge.offerMixinConfig(mixinConfig);
                 }
                 if (pack.manifest().accessWidener() != null) {
@@ -425,7 +435,7 @@ public final class EmbeddedRuntime {
                             0, reason);
                     break; // skip this mod's remaining entrypoints
                 } catch (RuntimeException e) {
-                    String reason = "mod threw in phase " + phase + ": " + e;
+                    String reason = "mod threw in phase " + phase + ": " + fullChain(e);
                     failures.add(new LoadFailure(LoadFailure.LIFECYCLE, container.getId(),
                             null, reason));
                     report.recordFailure("lifecycle", container.getId(), container.getVersion(),
@@ -555,5 +565,20 @@ public final class EmbeddedRuntime {
             cur = cur.getCause();
         }
         return cur.toString();
+    }
+
+    /**
+     * Renders the full cause chain of a throwable into a single line, so
+     * wrapped failures (e.g. host classloader Mixin transformation errors)
+     * expose their root cause in the load report.
+     */
+    private static String fullChain(Throwable t) {
+        StringBuilder sb = new StringBuilder(t.toString());
+        Throwable cur = t;
+        while (cur.getCause() != null && cur.getCause() != cur) {
+            cur = cur.getCause();
+            sb.append(" -> ").append(cur);
+        }
+        return sb.toString();
     }
 }

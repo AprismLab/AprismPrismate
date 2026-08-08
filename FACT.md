@@ -259,3 +259,45 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
   not changed this session — flag for the owner.
 - [STATUS] v26.0-Alpha.1 complete: full suite green, pipelines in place,
   committed as the Alpha 1 baseline.
+
+### Session 2026-08-09 (v26.0-Alpha.2-Phase0) - Real-game Fabric landing
+- [DONE] Real-game Fabric verification harness (tools/smoke/run_fabric_smoke.sh):
+  launches genuine Minecraft 26.2 through Fabric Loader 0.16.14 (KnotClient)
+  with Prismate installed as a Fabric mod, reusing the Aprism workspace smoke
+  environment (client.jar + libraries + natives). Fabric runtime deps
+  committed under tools/smoke/deps/. JDK 25 drives the game JVM.
+- [VERIFIED] SMOKE PASS with all three assertion groups green:
+  (1) lifecycle: ExampleMod PREINIT/INIT/SETUP/COMPLETE inside the live game;
+  (2) mixin passthrough: prismatemix sample's mixin woven into the real
+  net.minecraft.client.Minecraft class by Fabric's own Mixin environment
+  (marker printed at the TAIL of Minecraft.<init>);
+  (3) resource injection: assets from the pack's resources/ dir visible
+  through the host classloader (ressmoke probe).
+- [FIXED] Fabric entrypoint ordering: the load pipeline now runs in a
+  `preLaunch` entrypoint (FabricPreLaunchEntrypoint), before any Minecraft
+  class loads. Running it in ModInitializer (inside Minecraft.<init>) made
+  mixins targeting Minecraft fail with MixinTargetAlreadyLoadedException.
+  bootEarly() is now idempotent (preLaunch + main both invoke it; the second
+  call is a no-op) — the double-boot previously re-ran extraction and hit
+  Windows file locks on the still-open extracted jars.
+- [FIXED] Mixin compatibility level: the Fabric Mixin environment stayed at
+  its JAVA_8 default on the Java 25 game JVM, rejecting Java-21 mixin
+  classes. Prismate now elevates the level reflectively
+  (setCompatibilityLevel to the highest supported, JAVA_22) before
+  registering each .aje mixin config.
+- [FIXED] Lifecycle failure records now render the full cause chain (host
+  classloader errors like IllegalClassLoadError were previously invisible).
+- [NOTE] The Aprism workspace's mixinproof smoke pack violates the host
+  Mixin environment's package-ownership rule (entrypoint class in the same
+  package its mixin config owns -> IllegalClassLoadError on Fabric). Prismate
+  uses its own prismatemix sample instead; the Aprism pack is fine under the
+  Aprism agent because Aprism's own classloader does not enforce that rule.
+- [NOTE] OPEN-4 resolved for Fabric Loader 0.16.14: the stable injection
+  entry point is FabricLauncherBase.getLauncher().addToClassPath(Path, ...),
+  reached reflectively; verified live in-game (no degraded-mode fallback).
+- [DONE] FabricHostBridge.injectResourceDir implemented: extracted resources/
+  dirs are added to the Knot classloader, making assets/data visible to
+  Fabric's resource loading (proven by the ressmoke probe).
+- [STATUS] v26.0-Alpha.2 scope (Fabric real-game landing + mixin passthrough
+  + resources) verified; NeoForge real-game landing is the next milestone
+  (Alpha.3 per the roadmap).

@@ -72,22 +72,66 @@ public final class FabricHostBridge implements HostBridge {
 
     @Override
     public void injectResourceDir(Path resourcesDir) {
-        // Alpha 1: extracted resources are not yet wired into Fabric's
-        // resource loading; tracked as the v26.0-Alpha.2 exit criterion.
-        LOG.warning("Resource injection for " + resourcesDir
-                + " is not implemented on Fabric yet (planned for v26.0-Alpha.2)");
+        // Fabric serves mod resources through the Knot classloader: adding the
+        // extracted resources directory to the classpath makes its assets/data
+        // entries part of the shared resource space.
+        if (!FabricClassloaderBridge.inject(resourcesDir)) {
+            LOG.warning("Resource directory injection failed for " + resourcesDir
+                    + "; the mod's assets will not be visible to Fabric");
+        }
     }
 
     @Override
     public void offerMixinConfig(String configName) {
-        // Alpha 1: best-effort registration with the host Mixin environment
-        // (mixin passthrough is proven end-to-end in v26.0-Alpha.2).
+        // Register the extracted mixin config with the host Mixin environment
+        // so .aje mods that use Mixin patch through Fabric's own transformer.
         try {
+            // Elevate the Mixin compatibility level to match the running JVM.
+            // Fabric's MixinServiceKnot declares JAVA_22 as max, but the
+            // environment may still sit at the JAVA_8 default if no earlier
+            // config triggered elevation. Without this, mixin classes compiled
+            // above Java 8 are rejected with "Class version X required is
+            // higher than ... JAVA_8 supports class version 52".
+            elevateMixinCompatibility();
             Class<?> mixins = Class.forName("org.spongepowered.asm.mixin.Mixins");
             mixins.getMethod("addConfiguration", String.class).invoke(null, configName);
+            LOG.info("Registered mixin config '" + configName
+                    + "' with the Fabric Mixin environment");
         } catch (ReflectiveOperationException e) {
             LOG.warning("Could not register mixin config '" + configName
                     + "' with the Fabric Mixin environment: " + e);
+        }
+    }
+
+    /**
+     * Sets the Mixin compatibility level to the highest level the current JVM
+     * supports (capped at what the Mixin enum declares). Uses reflection so
+     * Prismate does not hard-depend on the Mixin API.
+     */
+    private void elevateMixinCompatibility() {
+        try {
+            Class<?> levelClass = Class.forName(
+                    "org.spongepowered.asm.mixin.MixinEnvironment$CompatibilityLevel");
+            // Walk the enum constants from highest to lowest; pick the first
+            // whose isSupported() returns true (i.e. the JVM is at least that
+            // version).
+            Object[] constants = levelClass.getEnumConstants();
+            Object best = null;
+            for (Object c : constants) {
+                java.lang.reflect.Method isSupported =
+                        levelClass.getDeclaredMethod("isSupported");
+                isSupported.setAccessible(true);
+                if (Boolean.TRUE.equals(isSupported.invoke(c))) {
+                    best = c; // keep advancing; enum is declared low-to-high
+                }
+            }
+            if (best != null) {
+                Class<?> envClass = Class.forName("org.spongepowered.asm.mixin.MixinEnvironment");
+                envClass.getMethod("setCompatibilityLevel", levelClass).invoke(null, best);
+                LOG.info("Mixin compatibility level elevated to " + best);
+            }
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            LOG.fine("Could not elevate Mixin compatibility level: " + e);
         }
     }
 
