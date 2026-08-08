@@ -1,0 +1,78 @@
+// AprismPrismate :: fabric - Fabric Loader entrypoint + classloader bridge
+// Host loader APIs are provided at runtime by Fabric Loader (compileOnly).
+
+plugins {
+    id 'java-library'
+    alias(libs.plugins.shadow)
+}
+
+dependencies {
+    api project(':common')
+
+    // Fabric Loader publishes a pom-packaging artifact; the real jar is
+    // selected explicitly with the @jar artifact notation.
+    compileOnly 'net.fabricmc:fabric-loader:0.16.14@jar'
+    testImplementation 'net.fabricmc:fabric-loader:0.16.14@jar'
+    testImplementation libs.bundles.testing
+}
+
+// Expand ${version} inside fabric.mod.json (strip the leading 'v' so the
+// value parses as a Fabric version).
+def fabricModVersion = project.prismateVersion.toString().replaceFirst('^v', '')
+tasks.named('processResources') {
+    inputs.property('version', fabricModVersion)
+    filesMatching('fabric.mod.json') {
+        expand(version: fabricModVersion)
+    }
+}
+
+// Per-loader artifact: AprismPrismate-v26.0-Alpha.1-Fa-26.2.jar
+shadowJar {
+    archiveFileName = "AprismPrismate-${project.version}-Fa-${project.minecraftVersion}.jar"
+
+    // Relocation rule (docs 01 Section 9.1): the embedded Aprism manifest
+    // runtime is relocated; com.aprism.api is NOT relocated so mod jars bind
+    // to the canonical API classes.
+    relocate 'com.aprism.manifest', 'com.aprism.prismate.internal.manifest'
+    relocate 'com.google.gson', 'com.aprism.prismate.libs.gson'
+
+    mergeServiceFiles()
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
+    exclude 'module-info.class'
+
+    // Build-time check (docs 02 Section 6): com/aprism/api MUST remain
+    // unrelocated in the shaded jar.
+    doLast {
+        def jarFile = archiveFile.get().asFile
+        def foundApi = false
+        def foundRelocatedApi = false
+        java.util.jar.JarFile jar = new java.util.jar.JarFile(jarFile)
+        try {
+            jar.entries().each { e ->
+                if (e.name.startsWith('com/aprism/api/')) {
+                    foundApi = true
+                }
+                if (e.name.startsWith('com/aprism/prismate/internal/api/')
+                        || e.name.contains('/internal/api/com/aprism/api/')) {
+                    foundRelocatedApi = true
+                }
+            }
+        } finally {
+            jar.close()
+        }
+        if (!foundApi) {
+            throw new GradleException("Shaded jar is missing com/aprism/api: "
+                    + "the Aprism API classes must be embedded unrelocated")
+        }
+        if (foundRelocatedApi) {
+            throw new GradleException("Shaded jar contains a relocated copy of "
+                    + "com/aprism/api: the API package must NOT be relocated")
+        }
+    }
+}
+
+tasks.named('assemble') {
+    dependsOn shadowJar
+}

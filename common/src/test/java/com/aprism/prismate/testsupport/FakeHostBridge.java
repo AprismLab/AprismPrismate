@@ -1,0 +1,107 @@
+package com.aprism.prismate.testsupport;
+
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.aprism.prismate.host.EnvSide;
+import com.aprism.prismate.host.HostBridge;
+
+/**
+ * A deterministic in-memory {@link HostBridge} for headless tests. Records
+ * every injection call and lets each test choose whether host injection
+ * succeeds (primary path) or fails (degraded fallback path).
+ *
+ * @author BlockConnect@StarsailsClover
+ */
+public final class FakeHostBridge implements HostBridge {
+
+    private final Path gameDir;
+    private final boolean injectionWorks;
+    private final EnvSide side;
+    private final List<Path> injectedJars = new ArrayList<>();
+    private final List<Path> injectedResourceDirs = new ArrayList<>();
+    private final List<String> offeredMixinConfigs = new ArrayList<>();
+    private final List<String> logLines = new ArrayList<>();
+
+    /**
+     * @param gameDir        the fake game directory
+     * @param injectionWorks whether {@link #injectJar} reports success
+     * @param side           the fake distribution side
+     */
+    public FakeHostBridge(Path gameDir, boolean injectionWorks, EnvSide side) {
+        this.gameDir = gameDir;
+        this.injectionWorks = injectionWorks;
+        this.side = side;
+    }
+
+    @Override
+    public String loaderKey() {
+        return "Fa";
+    }
+
+    @Override
+    public String loaderName() {
+        return "FakeFabric";
+    }
+
+    @Override
+    public String hostLoaderVersion() {
+        return "0.16.14";
+    }
+
+    @Override
+    public String minecraftVersion() {
+        return "26.2";
+    }
+
+    @Override
+    public EnvSide side() {
+        return side;
+    }
+
+    @Override
+    public Path gameDir() {
+        return gameDir;
+    }
+
+    @Override
+    public boolean injectJar(Path jar) {
+        if (!injectionWorks) {
+            return false;
+        }
+        injectedJars.add(jar);
+        return true;
+    }
+
+    @Override
+    public void injectResourceDir(Path resourcesDir) {
+        injectedResourceDirs.add(resourcesDir);
+    }
+
+    @Override
+    public void offerMixinConfig(String configName) {
+        offeredMixinConfigs.add(configName);
+    }
+
+    @Override
+    public void log(String message) {
+        logLines.add(message);
+    }
+
+    public List<Path> injectedJars() {
+        return List.copyOf(injectedJars);
+    }
+
+    public List<Path> injectedResourceDirs() {
+        return List.copyOf(injectedResourceDirs);
+    }
+
+    public List<String> offeredMixinConfigs() {
+        return List.copyOf(offeredMixinConfigs);
+    }
+
+    public List<String> logLines() {
+        return List.copyOf(logLines);
+    }
+}

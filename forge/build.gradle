@@ -1,0 +1,18 @@
+// AprismPrismate :: forge - Forge (classic) stub
+//
+// DECISION-1 (FACT.md Section 4): the Alpha line ships Fabric + NeoForge
+// first. This module is a compiling stub that reserves the MultiLoader slot
+// and the -Fo- artifact naming; it refuses to boot with a visible error if
+// ever loaded. Forge enters scope no earlier than v26.0-Alpha.5.
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':common')
+
+    compileOnly(libs.fml.loader) { transitive = false }
+    compileOnly(libs.neoforge.bus) { transitive = false }
+    testImplementation libs.bundles.testing
+}

@@ -1,0 +1,113 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      # Prismate consumes the Aprism core via a composite build, so both
+      # repositories must be checked out as siblings.
+      - name: Checkout Aprism (sibling)
+        uses: actions/checkout@v4
+        with:
+          repository: NDBlockConnect/Aprism
+          path: ws/Aprism
+
+      - name: Checkout AprismPrismate
+        uses: actions/checkout@v4
+        with:
+          path: ws/AprismPrismate
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build and test
+        working-directory: ws/AprismPrismate
+        run: ./gradlew build --console=plain
+
+      - name: Assemble artifacts
+        shell: pwsh
+        working-directory: ws/AprismPrismate
+        run: |
+          $ver = "${{ github.ref_name }}"
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Get-ChildItem fabric/build/libs/AprismPrismate-*.jar | Copy-Item -Destination dist/
+          Get-ChildItem neoforge/build/libs/AprismPrismate-*.jar | Copy-Item -Destination dist/
+          Get-ChildItem dist/*.jar | ForEach-Object {
+            (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower() + "  " + $_.Name |
+              Add-Content dist/checksums.txt
+          }
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign artifacts (keyless)
+        shell: pwsh
+        working-directory: ws/AprismPrismate
+        run: |
+          Get-ChildItem dist/AprismPrismate-*.jar | ForEach-Object {
+            cosign sign-blob --yes `
+              --bundle "dist/$($_.Name).bundle" `
+              --output-signature "dist/$($_.Name).sig" $_.FullName
+          }
+
+      - name: Setup Node for cdxgen
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate SBOM (CycloneDX)
+        shell: pwsh
+        working-directory: ws/AprismPrismate
+        run: |
+          npm install -g @cyclonedx/cdxgen
+          cdxgen -t java --project-name AprismPrismate --project-version "${{ github.ref_name }}" -o dist/AprismPrismate-sbom.cdx.json
+
+      - name: Delete existing release (if any)
+        shell: pwsh
+        working-directory: ws/AprismPrismate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete "${{ github.ref_name }}" --yes 2>$null
+          exit 0
+
+      - name: Create Pre-Release
+        shell: pwsh
+        working-directory: ws/AprismPrismate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ver = "${{ github.ref_name }}"
+          $notes = @"
+          AprismPrismate $ver (Pre-Release)
+
+          Alpha build of the 2026 major line. Targets Minecraft Java Edition 26.2.
+
+          **Contents**
+          - ``AprismPrismate-$ver-Fa-26.2.jar``: the Fabric bridge mod (Fabric Loader)
+          - ``AprismPrismate-$ver-N-26.2.jar``: the NeoForge bridge mod
+          - ``checksums.txt``: SHA-256 of the artifacts
+          - ``.sig`` / ``.bundle``: cosign keyless signatures (verify with ``cosign verify-blob``)
+
+          **Install**
+          Place Prismate into your host loader's ``mods/`` folder, then drop Aprism
+          ``.aje`` mods into the same instance's ``mods/``. Do NOT install the Aprism
+          javaagent in the same instance (they are mutually exclusive).
+          "@
+          gh release create $ver dist/* --prerelease --title $ver --notes $notes

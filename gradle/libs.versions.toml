@@ -1,0 +1,48 @@
+# AprismPrismate - Version Catalog
+# Central version definitions for all dependencies and plugins.
+# Author: BlockConnect@StarsailsClover
+
+[versions]
+# Embedded Aprism core (same minor line as Prismate itself)
+aprism = "v26.0-Alpha.8"
+
+# Minecraft / host loaders
+minecraft = "26.2"
+fabric-loader = "0.16.14"
+fml = "2.0.20"
+neoforge-bus = "7.0.16"
+
+# Build tools
+shadow = "9.0.0-beta12"
+
+# JSON (bundled + relocated into the shaded jars)
+gson = "2.13.1"
+
+# Testing
+junit = "5.13.4"
+assertj = "3.27.4"
+
+[libraries]
+# Aprism core modules (substituted by the composite build during co-development)
+aprism-api = { module = "com.aprism:aprism-api", version.ref = "aprism" }
+aprism-manifest = { module = "com.aprism:aprism-manifest", version.ref = "aprism" }
+aprism-loader-core = { module = "com.aprism:aprism-loader-core", version.ref = "aprism" }
+
+# Host loaders (compileOnly: provided by the host at runtime)
+fabric-loader = { module = "net.fabricmc:fabric-loader", version.ref = "fabric-loader" }
+fml-loader = { module = "net.neoforged.fancymodloader:loader", version.ref = "fml" }
+neoforge-bus = { module = "net.neoforged:bus", version.ref = "neoforge-bus" }
+
+# JSON
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+
+# Testing
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+
+[plugins]
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
+
+[bundles]
+testing = ["junit-jupiter", "assertj-core"]

@@ -1,0 +1,27 @@
+modLoader = "javafml"
+loaderVersion = "[2,)"
+license = "AGPL-3.0"
+
+[[mods]]
+modId = "aprismprismate"
+version = "${file.jarVersion}"
+displayName = "AprismPrismate"
+authors = "BlockConnect@StarsailsClover"
+description = '''
+Loads Aprism-native .aje mods inside NeoForge: discovery, extraction,
+classpath injection, and the full Aprism lifecycle.
+'''
+
+[[dependencies.aprismprismate]]
+modId = "neoforge"
+type = "required"
+versionRange = "[20.0,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.aprismprismate]]
+modId = "minecraft"
+type = "required"
+versionRange = "[26.2,)"
+ordering = "NONE"
+side = "BOTH"

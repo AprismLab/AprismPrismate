@@ -1,0 +1,39 @@
+// AprismPrismate - Root Build Script
+// Version: v26.0-Alpha.1
+// Author: BlockConnect@StarsailsClover
+
+// Apply common conventions to all subprojects
+subprojects {
+    apply plugin: 'java-library'
+
+    group = project.prismateGroup
+    version = project.prismateVersion
+
+    repositories {
+        mavenCentral()
+        mavenLocal()
+        maven { url = 'https://maven.fabricmc.net' }
+        maven { url = 'https://maven.neoforged.net/releases' }
+        maven { url = 'https://maven.architectury.dev/' }
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(project.javaVersion as int)
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.release = project.javaVersion as int
+        options.deprecation = true
+    }
+
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
+
+    dependencies {
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.13.4'
+    }
+}

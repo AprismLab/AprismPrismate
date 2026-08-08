@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "aprismprismate",
+  "version": "${version}",
+  "name": "AprismPrismate",
+  "description": "Loads Aprism-native .aje mods inside Fabric: discovery, extraction, classpath injection, and the full Aprism lifecycle.",
+  "authors": [
+    "BlockConnect@StarsailsClover"
+  ],
+  "contact": {
+    "homepage": "https://github.com/NDBlockConnect/AprismPrismate",
+    "sources": "https://github.com/NDBlockConnect/AprismPrismate"
+  },
+  "license": "AGPL-3.0",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.aprism.prismate.fabric.FabricEntrypoint"
+    ],
+    "client": [
+      "com.aprism.prismate.fabric.FabricClientEntrypoint"
+    ],
+    "server": [
+      "com.aprism.prismate.fabric.FabricServerEntrypoint"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": ">=26.2",
+    "java": ">=21"
+  }
+}

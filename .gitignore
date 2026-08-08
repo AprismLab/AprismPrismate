@@ -1,0 +1,48 @@
+# AprismPrismate - Gradle ignore rules
+# Mirrors the Aprism repository conventions.
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+.factorypath
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Java
+*.class
+*.log
+hs_err_pid*
+replay_pid*
+
+# Prismate build outputs
+dist/
+out/
+bin/
+
+# Local config
+*.local.properties
+local.properties
+
+# Crash dumps and smoke logs
+dumps/
+crash-reports/
+logs/
