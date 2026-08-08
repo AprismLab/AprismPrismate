@@ -23,7 +23,7 @@ Refract brings other loaders into Aprism; Prismate brings Aprism into other load
   and [docs/02‑developer‑guide.md](docs/02‑developer‑guide.md) (Developer Implementation Guide)
 - This Chinese summary is maintained in sync with the English source documents.
 
-## Core Design Highlights (Chinese Summary)
+## Core Design Highlights
 
 1. **Faithful Runtime Embedding**: Directly reuses Aprism’s `AprismManifestParser` / `DependencyResolver`,
 relocated under `com.aprism.prismate.internal`, while **not relocating** `com.aprism.api` to ensure consistent API classes bound by mods.
@@ -32,7 +32,7 @@ relocated under `com.aprism.prismate.internal`, while **not relocating** `com.ap
 4. **Mutually Exclusive with Aprism Agent**: Prismate and the Aprism agent cannot coexist in one instance. Prismate aborts startup if it detects the agent.
 5. **Visible Failures**: Malformed packages, missing dependencies, and version mismatches must produce human‑readable named errors; failures are never silently ignored.
 
-## Lifecycle Mapping (Summary)
+## Lifecycle Mapping
 
 | Aprism Phase | Fabric | NeoForge |
 |---|---|---|
