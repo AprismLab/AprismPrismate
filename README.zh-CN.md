@@ -1,0 +1,53 @@
+# AprismPrismate
+
+Aprism | AprismPrismate 是一个运行在 Fabric、NeoForge、Forge 内部的 Minecraft Java 版模组，
+让这些加载器能够加载 Aprism 原生的 `*.aje` 模组。
+
+> 作者：BlockConnect@StarsailsClover | 许可：Apache-2.0
+> [Aprism](https://github.com/NDBlockConnect/Aprism) 的配套仓库。
+
+## 这是什么
+
+Aprism 原生加载器通过 javaagent 直接加载 `.aje`。但如果用户已经在用 Fabric / NeoForge / Forge，
+不想切换到 Aprism agent，Prismate 就是那座桥：它作为宿主加载器的一个普通模组运行，
+把 Aprism 运行时（重定位后）嵌入自身，扫描 `mods/` 目录中的 `.aje` 包，
+提取其中的模组 jar / 资源 / mixin，注入宿主加载器的类加载器，并驱动 Aprism 的完整生命周期
+（`PREINIT -> INIT -> SETUP -> COMPLETE`，然后是 `CLIENT` / `SERVER` 侧）。
+
+它是 [AprismRefract](https://github.com/NDBlockConnect/AprismRefract) 的镜像：
+Refract 把其它加载器带进 Aprism；Prismate 把 Aprism 带进其它加载器。两者构成生态双向互通。
+
+## 文档
+
+- 英文正本（权威）：[docs/01-architecture-design.md](docs/01-architecture-design.md)（架构设计）
+  与 [docs/02-developer-guide.md](docs/02-developer-guide.md)（开发者实现指南）
+- 本中文摘要与英文正本同步维护
+
+## 核心设计要点（中文摘要）
+
+1. **忠实嵌入运行时**：直接复用 Aprism 的 `AprismManifestParser` / `DependencyResolver`，
+   重定位到 `com.aprism.prismate.internal`，但**不重定位** `com.aprism.api`，保证模组绑定的 API 类一致。
+2. **委托宿主加载器**：不自建类加载层级，把提取出的 jar / 资源注入宿主加载器的类加载器与生命周期。
+3. **一码三载**：`common/` 共享逻辑，`fabric/` `neoforge/` `forge/` 各自入口（MultiLoader 模板）。
+4. **与 Aprism agent 互斥**：同一实例不能同时装 Prismate 和 Aprism agent，Prismate 检测到 agent 会拒绝启动。
+5. **失败可见**：坏包、缺依赖、版本不符都必须给出可读的具名错误，绝不静默跳过。
+
+## 生命周期映射（摘要）
+
+| Aprism 阶段 | Fabric | NeoForge |
+|---|---|---|
+| PREINIT/INIT/SETUP | 自身 ModInitializer 早期 | @Mod 构造器 |
+| CLIENT | ClientModInitializer | FMLClientSetupEvent |
+| SERVER | DedicatedServerModInitializer | FMLDedicatedServerSetupEvent |
+| COMPLETE | GAME_READY 等后期事件 | 生命周期后期事件 |
+
+## 版本与发布
+
+- 版本规范与 Aprism 家族一致：`v<年份>.<小版本>[-Alpha.<n>]`，与被嵌入的 Aprism 核心同小版本线。
+- 制品命名：`AprismPrismate-v26.0-Alpha.1-Fa-26.2.jar`（Fabric）、`-N-`（NeoForge）、`-Fo-`（Forge）。
+- cosign 无密钥签名 + SHA-256 校验 + GitHub Pre-Release，与 Aprism / Refract 流程一致。
+
+## 安装
+
+把 Prismate 放进宿主加载器的 `mods/`，再把 Aprism 的 `.aje` 模组放进同一实例的 `mods/`。
+**不要**在同一实例再装 Aprism javaagent（两者互斥）。
