@@ -34,7 +34,7 @@ dependencies {
     testImplementation libs.bundles.testing
 }
 
-// Per-loader artifact: AprismPrismate-v26.0-Alpha.9-N-26.2.jar
+// Per-loader artifact: AprismPrismate-v26.0-N-26.2.jar
 shadowJar {
     archiveFileName = "AprismPrismate-${project.version}-N-${project.minecraftVersion}.jar"
     // ${file.jarVersion} in neoforge.mods.toml resolves from the jar's

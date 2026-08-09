@@ -26,7 +26,7 @@ tasks.named('processResources') {
     }
 }
 
-// Per-loader artifact: AprismPrismate-v26.0-Alpha.9-Fa-26.2.jar
+// Per-loader artifact: AprismPrismate-v26.0-Fa-26.2.jar
 shadowJar {
     archiveFileName = "AprismPrismate-${project.version}-Fa-${project.minecraftVersion}.jar"
 

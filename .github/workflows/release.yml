@@ -87,17 +87,28 @@ jobs:
           gh release delete "${{ github.ref_name }}" --yes 2>$null
           exit 0
 
-      - name: Create Pre-Release
+      - name: Create release (Pre-Release for Alpha tags, official Release otherwise)
         shell: pwsh
         working-directory: ws/AprismPrismate
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $ver = "${{ github.ref_name }}"
+          # Alpha tags (v26.0-Alpha.N) ship as Pre-Releases; the bare minor
+          # version (v26.0) is the official Release, per the Aprism family
+          # versioning scheme.
+          $isAlpha = $ver -match "Alpha"
+          if ($isAlpha) {
+            $kind = "Pre-Release"
+            $flag = "--prerelease"
+          } else {
+            $kind = "Official Release"
+            $flag = ""
+          }
           $notes = @"
-          AprismPrismate $ver (Pre-Release)
+          AprismPrismate $ver ($kind)
 
-          Alpha build of the 2026 major line. Targets Minecraft Java Edition 26.2.
+          2026 major line. Targets Minecraft Java Edition 26.2.
 
           **Contents**
           - ``AprismPrismate-$ver-Fa-26.2.jar``: the Fabric bridge mod (Fabric Loader)
@@ -110,4 +121,8 @@ jobs:
           ``.aje`` mods into the same instance's ``mods/``. Do NOT install the Aprism
           javaagent in the same instance (they are mutually exclusive).
           "@
-          gh release create $ver dist/* --prerelease --title $ver --notes $notes
+          if ($isAlpha) {
+            gh release create $ver dist/* --prerelease --title $ver --notes $notes
+          } else {
+            gh release create $ver dist/* --title $ver --notes $notes
+          }

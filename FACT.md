@@ -497,3 +497,21 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
   tests green; build successful.
 - [DONE] Final soak green; committed + tagged v26.0-Alpha.9 (release
   candidate). v26.0 official is the next step.
+
+### Session 2026-08-09 (v26.0-Phase0) - v26.0 official (GA)
+- [DONE] Version bumped to v26.0 (bare number = minor official, GitHub
+  Release semantics; no stability suffix, per the Aprism family scheme).
+- [DONE] release.yml fixed to distinguish channels by tag: Alpha tags
+  (v26.0-Alpha.N) publish as Pre-Releases; the bare minor version (v26.0)
+  publishes as the official Release (previously hardcoded --prerelease).
+- [VERIFIED] REGRESSION PASS on v26.0 artifacts: all three real-game harnesses
+  green (Fabric lifecycle + mixin + resources, NeoForge lifecycle + report,
+  Fabric multi-mod soak). Soak startup baseline 9055 ms total boot (3-pack
+  soak). Headless suite 77 tests green; build successful.
+- [VERIFIED] v26.0 artifact relocation layout: com/aprism/api present and
+  unrelocated (20 classes), manifest + loader relocated to
+  com.aprism.prismate.internal, no leaked com/aprism/manifest or
+  com/aprism/loader in either loader jar.
+- [DONE] Docs 01/02 finalized at Implemented (release candidate) status;
+  known-issues list committed at Alpha.9 (docs 01 §13). v26.0 official
+  collapses Alpha.1-9 per the scheme.
