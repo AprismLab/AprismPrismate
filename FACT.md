@@ -449,3 +449,21 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
   first-run guidance written/skipped). 77 tests green; real-Fabric smoke
   PASS (lifecycle + mixin + resources + displayName in the in-game report).
 - [DONE] Version bumped to v26.0-Alpha.7.
+
+### Session 2026-08-09 (v26.0-Alpha.8-Phase0) - Real-game harness + regression soak
+- [DONE] Unified real-game regression runner (tools/smoke/run_all_regression.sh):
+  runs the three real-game harnesses in sequence against the current version —
+  Fabric lifecycle+mixin+resources, NeoForge lifecycle+report, and the Fabric
+  multi-mod dependency soak — printing a PASS/FAIL summary per harness and
+  exiting non-zero on the first failure. This is the pre-release gate for
+  every v26.0 Alpha.
+- [VERIFIED] REGRESSION PASS on v26.0-Alpha.7: all three real-game harnesses
+  green in one run. Soak startup baseline improved to 11242 ms total boot
+  (vs 17771 ms at Alpha.4, same 3-pack soak).
+- [VERIFIED] REGRESSION PASS on v26.0-Alpha.8 artifacts: all three real-game
+  harnesses green against the freshly built Alpha.8 jars (Fabric lifecycle +
+  mixin + resources, NeoForge lifecycle + report, Fabric multi-mod soak).
+  Soak startup baseline improved to 9352 ms total boot (vs 11242 ms at
+  Alpha.7, same 3-pack soak). Headless suite 77 tests green; build artifacts
+  relocation layout re-verified.
+- [DONE] Version bumped to v26.0-Alpha.8.
