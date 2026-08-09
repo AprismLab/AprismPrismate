@@ -312,7 +312,7 @@ were resolved against the pinned loader versions with real-game verification
 | M4 | Forge entrypoint (if in scope) | sample loads on Forge | Deferred post-1.0 (DECISION-1 re-confirmed at v26.0-Alpha.5); visible stub refuses to boot |
 | M5 | Mutual-exclusion guard + error reporting polish | agent-present case refuses cleanly; malformed packs report clearly | v26.0-Alpha.1 (guard) / v26.0-Alpha.4 (report files) / v26.0-Alpha.6 (upstream alignment) |
 | M6 | Signing + release pipeline (mirror Aprism/Refract) | cosign-signed Pre-Release artifacts published | v26.0-Alpha.1 (pipelines) / verified in place at v26.0-Alpha.7 |
-| M7 | JE version-line expansion 1.20..26.2 + upstream sync discipline | PrismateVersionLine + boot gate + drift check; real Fabric landings on the 1.20 and 1.21 segments | v26.1-Alpha.1 (foundation/sync) / v26.1-Alpha.2 (real 1.21.x) / v26.1-Alpha.3 (real 1.20.x + remap boundary) |
+| M7 | JE version-line expansion 1.20..26.2 + upstream sync discipline | PrismateVersionLine + boot gate + drift check; real Fabric landings on the 1.20 and 1.21 segments; multi-version regression matrix | v26.1-Alpha.1 (foundation/sync) / v26.1-Alpha.2 (real 1.21.x) / v26.1-Alpha.3 (real 1.20.x + remap boundary) / v26.1-Alpha.4 (NeoForge decision + resource/Mixin) / v26.1-Alpha.5 (multi-version matrix + per-segment baselines) |
 
 ## 13. Known Issues (v26.1 line)
 

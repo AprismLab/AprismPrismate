@@ -126,6 +126,10 @@ mkdir -p "$SMOKE_DIR"
 
 rm -f "$LOG"
 echo "Smoke121: launching real Minecraft $MCVER through Fabric Loader with Prismate..."
+# Wall-clock startup baseline for this line segment (v26.1-Alpha.5): time from
+# JVM launch until the COMPLETE-phase marker appears. Coarse (poll granularity)
+# but comparable across segments.
+T_START_MS=$(($(date +%s) * 1000))
 "$JAVA_BIN" "@$ARGS" > "$LOG" 2>&1 &
 GAME_PID=$!
 
@@ -141,6 +145,7 @@ for _ in $(seq 1 "$TIMEOUT_SECS"); do
     break
   fi
 done
+T_END_MS=$(($(date +%s) * 1000))
 
 if command -v pkill >/dev/null 2>&1; then
   pkill -f "$MARKER" >/dev/null 2>&1 || true
@@ -166,6 +171,12 @@ grep -q "failed 0" "$LOG" || fail "load report reports failures"
 echo "Smoke121: resource injection assertions..."
 grep -q "\[RESSMOKE\] resource visible=true" "$LOG" \
   || fail "ressmoke resources not visible through the host classloader"
+
+# Startup baseline for this line segment (v26.1-Alpha.5): wall-clock ms from
+# JVM launch to the COMPLETE-phase marker, written per version.
+BOOT_MS=$((T_END_MS - T_START_MS))
+echo "SMOKE121 BASELINE: total boot = ${BOOT_MS} ms (Prismate $VERSION, MC $MCVER, Fabric)"
+echo "$BOOT_MS" > "$SMOKE_DIR/boot_ms.txt"
 
 echo "SMOKE121 PASS: real-Fabric Prismate lifecycle verified ($VERSION on MC $MCVER)"
 exit 0

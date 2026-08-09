@@ -755,3 +755,26 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
   resources, NeoForge lifecycle+report, Fabric multi-mod soak all green
   (soak boot baseline 12262 ms).
 - [DONE] Version bumped to v26.1-Alpha.4.
+
+### Session 2026-08-10 (v26.1-Alpha.5-Phase0) - Multi-version regression matrix
+- [DONE] Grew run_all_regression.sh into a MULTI-VERSION MATRIX over the JE
+  line. New entries run the parameterized real-Fabric harness
+  (run_fabric121_smoke.sh) per segment; the 26.2 trio (Fabric
+  lifecycle+mixin+resources, NeoForge lifecycle+report, Fabric multi-mod
+  soak) is retained unchanged. Each entry runs under its proven runtime:
+  the 1.20/1.21 segments under JDK 21 (PRISMATE_JAVA21_HOME), the 26.2 trio
+  under JDK 25 (PRISMATE_JAVA_HOME). A with_java helper scopes JAVA_HOME per
+  harness without disturbing the caller's environment.
+- [DONE] Added a per-segment wall-clock startup baseline to the parameterized
+  harness: time from JVM launch until the COMPLETE-phase marker, printed and
+  written to build/smoke-fabric-<slug>-run/boot_ms.txt (coarse poll
+  granularity, comparable across segments).
+- [VERIFIED] MATRIX GREEN (5/5) on v26.1-Alpha.5, with per-segment baselines:
+  Fabric 1.21.10 lifecycle+resources = 25000 ms; Fabric 1.20.1
+  lifecycle+resources = 26000 ms; Fabric 26.2 lifecycle+mixin+resources PASS;
+  NeoForge 26.2 lifecycle+report PASS; Fabric 26.2 multi-mod soak PASS (soak
+  boot baseline 11159 ms). The 1.20/1.21 wall-clock figures include full
+  Minecraft boot to the COMPLETE marker and are dominated by the obfuscated
+  segments' slower resource/class load, not Prismate itself (compare the
+  soak's 11159 ms on the unobfuscated 26.2 segment).
+- [DONE] Version bumped to v26.1-Alpha.5.
