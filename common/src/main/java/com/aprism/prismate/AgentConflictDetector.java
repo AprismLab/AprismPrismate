@@ -7,20 +7,20 @@ package com.aprism.prismate;
  * {@code com.aprism.api} and two lifecycles, causing ClassCastException and
  * double initialization.
  *
- * <p>Detection mechanism (OPEN-3 interim resolution): the Aprism agent
- * currently sets no system property (verified against v26.0-Alpha.8), so
- * Prismate probes the system classloader for {@code com.aprism.loader.AprismRuntime}.
- * Prismate never embeds {@code com.aprism.loader} (library mode embeds only
- * the API and manifest modules), so that class can only be present when the
- * Aprism agent jar is attached. The {@code aprism.agent.active} system
- * property is honored as a forward-compatible hook for when the Aprism agent
- * starts setting it.
+ * <p>Detection mechanism (OPEN-3 closed upstream in Aprism core v26.0): the
+ * Aprism agent now sets {@code aprism.agent.active=true}, which Prismate
+ * checks FIRST as the primary signal. For Aprism agent versions that predate
+ * that property, Prismate falls back to probing the system classloader for
+ * {@code com.aprism.loader.AprismRuntime} — Prismate never embeds
+ * {@code com.aprism.loader} (library mode embeds only the API and manifest
+ * modules), so that class can only be present when the Aprism agent jar is
+ * attached.
  *
  * @author BlockConnect@StarsailsClover
  */
 public final class AgentConflictDetector {
 
-    /** Forward-compatible property the Aprism agent may set in the future. */
+    /** Canonical property the Aprism agent sets since v26.0 (OPEN-3). */
     public static final String AGENT_PROPERTY = "aprism.agent.active";
 
     /** The agent's runtime singleton class, only present when the agent is attached. */

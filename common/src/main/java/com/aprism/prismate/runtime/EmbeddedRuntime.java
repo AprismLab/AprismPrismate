@@ -266,8 +266,11 @@ public final class EmbeddedRuntime {
 
     /**
      * Builds the Prismate environment map supplied to dependency resolution
-     * (docs 01 Section 7). Includes the self-injected {@code aprism} id
-     * (OPEN-1 interim) normalized for range matching.
+     * (docs 01 Section 7). Injects the {@code aprism} id with the embedded
+     * Aprism version, mirroring the canonical upstream behavior Aprism core
+     * landed in v26.0 (OPEN-1 closed): both paths normalize the version the
+     * same way, so {@code depends: {"aprism": ">=26.0"}} resolves identically
+     * whether the pack is loaded by the Aprism agent or by Prismate.
      */
     private Map<String, String> buildEnvironment() {
         Map<String, String> environment = new LinkedHashMap<>();

@@ -64,18 +64,20 @@ with it in one instance (docs 01 §9.2).
 
 ### Open items (tracked to resolution)
 
-- **OPEN-1 (no `aprism` env id in Aprism core):** interim — Prismate injects
-  `aprism=<embedded Aprism version>` into the dependency environment itself.
-  Upstream fix targeted at v26.0-Alpha.6 (Aprism core adds the id).
+- **OPEN-1 (no `aprism` env id in Aprism core):** CLOSED upstream in Aprism
+  core (v26.0 line) — `loadMods` now supplies the normalized running Aprism
+  version under the `aprism` id. Prismate's self-injection is now the
+  fallback and stays in place (the embedded Aprism core may predate the
+  upstream fix); both use the identical normalization (v-prefix + prerelease
+  stripped, three-segment padded).
 - **OPEN-2 (no `forge` env id):** low priority; only needed if Forge `.aje`
   dependency declarations appear. Deferred with the Forge module.
-- **OPEN-3 (agent detection mechanism):** RESOLVED IN PRISMATE: the Aprism
-  agent (verified against v26.0-Alpha.8) sets NO system property, so Prismate
-  detects the agent by probing the system classloader for an initialized
-  `com.aprism.loader.AprismRuntime` (singleton with non-null classloader), and
-  additionally honors an `aprism.agent.active=true` system property as a
-  forward-compatible hook. Upstreaming the property into the Aprism agent is
-  targeted at v26.0-Alpha.6.
+- **OPEN-3 (agent detection mechanism):** CLOSED upstream in Aprism core
+  (v26.0 line) — `AprismAgent.initialize` now sets
+  `aprism.agent.active=true`, which is Prismate's PRIMARY detection. The
+  system-classloader probe for an initialized `com.aprism.loader.AprismRuntime`
+  is retained as the fallback for Aprism agent versions that predate the
+  property.
 - **OPEN-4 (Fabric Knot injection API):** the Fabric bridge resolves the
   add-jar entry point reflectively (`FabricLauncherBase#getLauncher().addURL`,
   Knot fallback) at runtime against the pinned Fabric Loader. Real-game
@@ -408,3 +410,20 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
   stub that refuses to boot with a named error.
 - [DONE] Version bumped to v26.0-Alpha.5; embedded Aprism core aligned to the
   v26.0 GA release (gradle.properties + libs.versions.toml).
+
+### Session 2026-08-09 (v26.0-Alpha.6-Phase0) - Upstream alignment
+- [DONE] Landed OPEN-1 upstream in Aprism core: AprismRuntime.loadMods now
+  supplies the normalized running Aprism version under the `aprism`
+  environment id; ExtensionLoader.normalizeAprismVersion widened to
+  package-private for reuse. Tests: aprism env id resolves / mismatch aborts.
+  (Aprism commit 04da150; 287 tests green.)
+- [DONE] Landed OPEN-3 upstream in Aprism core: AprismAgent.initialize now
+  sets aprism.agent.active=true. Test: premain sets the property. (Aprism
+  commit 04da150.)
+- [DONE] Prismate switched to the canonical mechanisms with fallbacks
+  retained: AgentConflictDetector checks aprism.agent.active FIRST (now set
+  by the agent) and keeps the system-classloader probe as the fallback for
+  pre-property agents; EmbeddedRuntime.buildEnvironment keeps injecting the
+  `aprism` id (now identical to the upstream behavior) as the fallback for
+  embedded Aprism cores that predate the fix.
+- [DONE] Version bumped to v26.0-Alpha.6.
