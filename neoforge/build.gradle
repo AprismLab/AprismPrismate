@@ -21,6 +21,20 @@ tasks.withType(JavaCompile).configureEach {
     options.release = 21
 }
 
+// FML 11's jars are published with Gradle Module Metadata declaring a JVM 25
+// minimum (org.gradle.jvm.version >= 25). Because this module compiles with
+// options.release = 21, Gradle would otherwise derive a JVM 21 target for the
+// resolvable configurations and fail variant matching against FML. Pin the
+// target-JVM attribute of the resolvable configurations to the Java 25
+// toolchain so FML resolves; the emitted bytecode still stays at release 21.
+configurations.matching { it.canBeResolved }.configureEach {
+    attributes {
+        attribute(
+            org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE,
+            25)
+    }
+}
+
 dependencies {
     api project(':common')
 
