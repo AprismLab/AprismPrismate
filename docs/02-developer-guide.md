@@ -1,7 +1,7 @@
 # AprismPrismate Developer Guide
 
 > Document 2 of 2 | AprismPrismate Documentation Set
-> Version: v26.0-Alpha.9 | Status: Implemented (release candidate)
+> Version: v26.1-Alpha.7 | Status: Implemented
 > Author: BlockConnect@StarsailsClover
 > Canonical language: English
 
@@ -37,7 +37,8 @@ fabric/     -> depends: common + Fabric Loader (loom). Contains: FabricEntrypoin
                FabricClassloaderBridge, fabric.mod.json.
 neoforge/   -> depends: common + NeoForge. Contains: NeoForgeEntrypoint (@Mod),
                NeoForgeClassloaderBridge.
-forge/      -> (optional for Alpha 1) Forge entrypoint + bridge.
+forge/      -> visible refusal stub (DECISION-1 re-confirmed; classic Forge
+               deferred post-1.0). Refuses to boot with a named error.
 ```
 
 Shading rule (critical): relocate `com.aprism.loader` and `com.aprism.manifest`
@@ -56,8 +57,11 @@ These are exact; copy, do not paraphrase.
   environment, entrypoints, mixins, depends, platforms, accessWidener, provides,
   custom`.
 - Environment IDs Prismate must supply: `minecraft`, `fabricloader` (Fabric
-  build), `neoforge` (NeoForge build), `java`. Also inject `aprism` (embedded
-  runtime version) until Aprism core provides it (see OPEN-1 in doc 01).
+  build), `neoforge` (NeoForge build), `java`, plus the loader-specific
+  `forge` id for the Forge stub. Also inject `aprism` (embedded runtime
+  version): Aprism core now supplies this upstream (OPEN-1 closed, v26.0),
+  but Prismate keeps the self-injection as a fallback for embedded cores that
+  predate the upstream fix. Both paths use the same normalization.
 
 ## 4. Implementation steps (ordered)
 

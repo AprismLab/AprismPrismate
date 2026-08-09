@@ -803,3 +803,24 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
   Prismate binds. The contract test is the standing guard so a future
   upstream change is caught by the suite rather than discovered at runtime.
 - [DONE] Version bumped to v26.1-Alpha.6.
+
+### Session 2026-08-10 (v26.1-Alpha.7-Phase0) - Surface and supply chain (line-wide)
+- [DONE] README.md + README.zh-CN.md updated for the version line: "Fabric and
+  NeoForge" (Forge stub called out), new "Supported Minecraft Versions (JE
+  Line, v26.1+)" table (26.x Fabric+NeoForge / 1.21.x Fabric / 1.20.x Fabric,
+  all real-game verified), NeoForge-26.x-only + Forge-stub + Java-21-runtime-
+  floor + no-remap notes, upstream-sync-discipline highlight (#6), and
+  CycloneDX SBOM added to the supply-chain bullet.
+- [DONE] docs 01/02 headers bumped to v26.1-Alpha.7, Status: Implemented; the
+  developer guide's forge/ module row rewritten as a visible refusal stub and
+  the environment-id bullet updated (OPEN-1 closed upstream; Prismate keeps
+  the self-injected aprism id as a fallback for older embedded cores).
+- [VERIFIED] Supply chain re-verified end to end against the published
+  v26.1-Alpha.6 release: assets present = per-loader jars + .sig + .bundle
+  (cosign keyless), checksums.txt, AprismPrismate-sbom.cdx.json; downloaded
+  the Fabric artifact and checksums.txt and confirmed the SHA-256 matches the
+  recorded checksum (9578cf56...). isPrerelease=true for the Alpha tag as
+  expected.
+- [DONE] Artifact naming across the line confirmed:
+  AprismPrismate-v26.1-Alpha.7-Fa-26.2.jar and -N-26.2.jar rebuilt.
+- [DONE] Version bumped to v26.1-Alpha.7.
