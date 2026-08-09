@@ -778,3 +778,28 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
   segments' slower resource/class load, not Prismate itself (compare the
   soak's 11159 ms on the unobfuscated 26.2 segment).
 - [DONE] Version bumped to v26.1-Alpha.5.
+
+### Session 2026-08-10 (v26.1-Alpha.6-Phase0) - Upstream alignment + API contract drift alarm
+- [VERIFIED] Upstream aligned with Aprism v26.1 GA. The drift check found
+  Aprism HEAD had moved to 3010d613 (release: v26.1 GA - bump version +
+  enriched release-notes mechanism). That commit touches only release.yml /
+  README / docs/release-notes / version props — it does NOT touch
+  aprism-api or aprism-manifest, the unrelocated contract Prismate binds.
+  Prismate was GREEN against it; the sync pin was advanced to 3010d613.
+- [DONE] Added ApiContractConsistencyTest (common/src/consistencyTest, 4
+  tests) as the runtime CONTRACT drift alarm. Previously only the JE version
+  line had a consistency guard; the aprism-api mod contract Prismate binds at
+  runtime had none, so an upstream rename/reorder/signature change would have
+  broken Prismate silently. The new test pins: (a) AprismPhase constants in
+  the exact lifecycle dispatch order PREINIT->INIT->SETUP->COMPLETE->CLIENT/
+  SERVER; (b) IAprismMod's four hooks each take one AprismContext and return
+  void; (c) AprismManifest record keeps the components Prismate reads;
+  (d) ModContainer keeps the getters Prismate surfaces. Additions are allowed
+  (monotonic); removals/renames fail loudly. Consistency suite is now 8 tests
+  (4 version-line + 4 contract), all green.
+- [DECISION] No code adaptation was needed this pass: none of the APIs landed
+  since Alpha.1 (Aprism v26.1-Alpha.8 lowlevel hooks, v26.1-Alpha.9 AEP
+  lifecycle hooks, the v26.1 GA release) modify the mod-facing contract
+  Prismate binds. The contract test is the standing guard so a future
+  upstream change is caught by the suite rather than discovered at runtime.
+- [DONE] Version bumped to v26.1-Alpha.6.
