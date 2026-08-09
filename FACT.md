@@ -515,3 +515,13 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
 - [DONE] Docs 01/02 finalized at Implemented (release candidate) status;
   known-issues list committed at Alpha.9 (docs 01 §13). v26.0 official
   collapses Alpha.1-9 per the scheme.
+- [FIXED] CI release pipeline (was failing for Alpha.6-Alpha.9 and v26.0):
+  two root causes in GitHub Actions. (1) The forge stub declared compileOnly
+  on NeoForge fancymodloader 11.0.16 (Java 25 bytecode) but the stub only
+  uses java.util.logging and classic Forge is net.minecraftforge anyway; the
+  unneeded FML deps were removed so the stub compiles on the JVM 21 CI
+  toolchain. (2) The neoforge module requires a Java 25 toolchain that CI
+  runners lack; added the foojay-resolver-convention 1.0.0 settings plugin so
+  Gradle auto-provisions JDK 25 from the Foojay Disco API on CI (local
+  machines supply it via org.gradle.java.installations.paths). 77 tests green
+  locally after both fixes. v26.0 tag re-pointed to the fixed commit.

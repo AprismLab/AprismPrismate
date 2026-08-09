@@ -15,6 +15,15 @@ pluginManagement {
     }
 }
 
+// Auto-provision the Java 25 toolchain the neoforge module requires (FML 11
+// jars are Java 25 bytecode). Local machines supply JDK 25 via
+// org.gradle.java.installations.paths in gradle.properties; CI runners resolve
+// it from the Foojay Disco API through this resolver (0.8.0 is incompatible
+// with Gradle 9, so 1.0.0 is used).
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
 dependencyResolutionManagement {
     repositories {
         mavenCentral()

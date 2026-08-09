@@ -12,7 +12,11 @@ plugins {
 dependencies {
     api project(':common')
 
-    compileOnly(libs.fml.loader) { transitive = false }
-    compileOnly(libs.neoforge.bus) { transitive = false }
+    // DECISION-1 (FACT.md): Forge (classic) is deferred post-1.0; this stub
+    // refuses to boot and uses only java.util.logging, so it needs NO host
+    // loader compile dependencies. (Classic Forge uses net.minecraftforge, not
+    // NeoForge's fancymodloader; the real Forge deps will be added when Forge
+    // scope actually lands.) Keeping the module dependency-free lets it
+    // compile on the standard JVM 21 toolchain in CI.
     testImplementation libs.bundles.testing
 }
