@@ -325,6 +325,17 @@ public final class EmbeddedRuntime {
                 }
                 if (pack.resourcesDir() != null) {
                     bridge.injectResourceDir(pack.resourcesDir());
+                    // Classloader-level half of resource injection
+                    // (v26.1-Alpha.4): also register the extracted resources/
+                    // dir with the Prismate-managed loader so mods loaded
+                    // through it can resolve their own resource entries even
+                    // when the host has no runtime resource-injection path
+                    // (NeoForge). On Fabric this is harmless (host already
+                    // serves them; parent delegation finds them either way).
+                    if (fallbackLoader == null) {
+                        fallbackLoader = new PrismateModClassLoader(getClass().getClassLoader());
+                    }
+                    fallbackLoader.addResourceDir(pack.resourcesDir());
                 }
                 // Mixin configs: register every config the manifest declares
                 // (the authoritative list, resolvable through the injected mod

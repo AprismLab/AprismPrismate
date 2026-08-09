@@ -144,20 +144,45 @@ public final class NeoForgeHostBridge implements HostBridge {
 
     @Override
     public void injectResourceDir(Path resourcesDir) {
-        LOG.warning("Resource injection for " + resourcesDir
-                + " is not implemented on NeoForge yet (planned for v26.0-Alpha.3)");
+        // v26.1-Alpha.4: the extracted resources/ directory is registered
+        // with the Prismate-managed classloader by the runtime itself, so
+        // mods loaded through it can serve their own resource entries. What
+        // NeoForge still lacks is host-level resource-manager integration
+        // (visible to the host's own resource reload / other mods) — there is
+        // no public FML 11 runtime resource-injection API, so that stays
+        // deferred (docs 01 Section 13 issue 2).
+        LOG.info("Resource dir " + resourcesDir
+                + " is served via the Prismate-managed classloader; host-level "
+                + "resource-manager integration is not available on NeoForge");
     }
 
     @Override
     public void offerMixinConfig(String configName) {
-        // Alpha 1: best-effort registration with the host Mixin environment.
+        // Best-effort registration with the host Mixin environment. On
+        // NeoForge the Mixin subsystem is sealed after FML's mod-loading
+        // bootstrap, so late addConfiguration calls throw; the root cause is
+        // unwrapped and reported so the load report names the boundary
+        // (v26.1-Alpha.4, docs 01 Section 13 issue 1).
         try {
             Class<?> mixins = Class.forName("org.spongepowered.asm.mixin.Mixins");
             mixins.getMethod("addConfiguration", String.class).invoke(null, configName);
-        } catch (ReflectiveOperationException e) {
+            LOG.info("Registered mixin config '" + configName
+                    + "' with the NeoForge Mixin environment");
+        } catch (ReflectiveOperationException | RuntimeException e) {
             LOG.warning("Could not register mixin config '" + configName
-                    + "' with the NeoForge Mixin environment: " + e);
+                    + "' with the NeoForge Mixin environment: " + describe(e)
+                    + " (mixin passthrough is a known NeoForge limitation; the mod's "
+                    + "lifecycle still runs without its mixins)");
         }
+    }
+
+    /** Unwraps the cause chain to its root for a readable report line. */
+    private static String describe(Throwable t) {
+        Throwable cur = t;
+        while (cur.getCause() != null && cur.getCause() != cur) {
+            cur = cur.getCause();
+        }
+        return cur.toString();
     }
 
     @Override

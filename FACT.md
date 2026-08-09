@@ -717,3 +717,41 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
   resources, NeoForge lifecycle+report, Fabric multi-mod soak all green; plus
   the 1.20.1 and 1.21.10 real-game smokes on the Alpha.3 artifact.
 - [DONE] Version bumped to v26.1-Alpha.3.
+
+### Session 2026-08-10 (v26.1-Alpha.4-Phase0) - NeoForge line decision + known-issue attempt
+- [DECISION] NeoForge version line = 26.x only for v26.1 (docs 01 §13 issue
+  5): the bridge is written against FML 11 (FMLLoader.getCurrent(),
+  constructor-injected mod-scoped event bus). NeoForge 1.20.2-1.21.x runs
+  FML 2-4 (different API); the 1.20/1.21 segments are covered by the Fabric
+  bridge instead. neoforge.mods.toml keeps versionRange = "[26.2,)".
+- [ATTEMPTED + RESOLVED-at-classloader-level] NeoForge resource injection
+  (docs 01 §13 issue 2): the extracted resources/ directory is now ALSO
+  registered with the Prismate-managed mod classloader
+  (PrismateModClassLoader.addResourceDir + EmbeddedRuntime.injectClasspath),
+  so mods loaded through it serve their own resource entries. VERIFIED in a
+  real NeoForge 26.2 game: the ressmoke probe now prints
+  "[RESSMOKE] resource visible=true" (was false). What remains open is only
+  host-level resource-manager integration (visibility to the host's own
+  resource reload / other mods) — FML 11 exposes no runtime
+  resource-injection API, so that part stays deferred.
+- [ATTEMPTED + root cause captured] NeoForge Mixin passthrough (docs 01 §13
+  issue 1): unwrapped the previously-swallowed InvocationTargetException in a
+  live game — the real root cause is IllegalArgumentException: "The specified
+  resource '<config>' was invalid or could not be read": the Mixin service
+  resolves configs through FML 11's JPMS ModuleClassLoader/module layer,
+  which has no runtime jar-injection seam reachable by Prismate's reflective
+  bridge. Confirmed a genuine architectural limitation (not a fixable gap);
+  the failure is now reported with the root cause + an explicit boundary
+  note. Fabric Mixin passthrough is unaffected.
+- [DONE] Tests: ClassloaderResourceInjectionTest (2: addResourceDir resolves
+  resource entries through the loader; EmbeddedRuntime registers pack
+  resources/ into the managed loader). Headless suite 81 tests green.
+- [DONE] Upstream sync discipline exercised twice this session: Aprism moved
+  a7c9b9c -> 1a27f6c9 (feat(aep) v26.1-Alpha.9: priority ordering, dependency
+  validation, onPostInitialize/onShutdown extension hooks — additive to
+  aprism-api/loader-core). Prismate stayed green against both; the sync pin
+  was advanced to 1a27f6c9.
+- [VERIFIED] REGRESSION PASS on v26.1-Alpha.4: Fabric lifecycle+mixin+
+  resources, NeoForge lifecycle+report, Fabric multi-mod soak all green
+  (soak boot baseline 12262 ms).
+- [DONE] Version bumped to v26.1-Alpha.4.

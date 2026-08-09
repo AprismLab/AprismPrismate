@@ -317,12 +317,23 @@ were resolved against the pinned loader versions with real-game verification
 ## 13. Known Issues (v26.1 line)
 
 1. **NeoForge host Mixin passthrough**: `.aje` mixin configs cannot be
-   registered with NeoForge's already-initialized Mixin environment
-   (`Mixins.addConfiguration` throws). `.aje` mods that rely on Mixin work on
-   Fabric but their mixins are not applied on NeoForge. Tracked with OPEN-5.
-2. **NeoForge resource-dir injection**: extracted `resources/` dirs are not
-   yet injected into NeoForge's resource loading (the Fabric path works).
-   Tracked with OPEN-5.
+   registered with NeoForge's already-initialized Mixin environment. The
+   v26.1-Alpha.4 attempt captured the real root cause in a live game:
+   `Mixins.addConfiguration` throws `IllegalArgumentException: The specified
+   resource '<config>' was invalid or could not be read`, because the Mixin
+   service resolves configs through FML 11's JPMS `ModuleClassLoader` /
+   module layer, which has no runtime jar-injection seam reachable by
+   Prismate's reflective bridge. `.aje` mods that rely on Mixin work on
+   Fabric but their mixins are not applied on NeoForge; the mod's lifecycle
+   still runs. Tracked with OPEN-5.
+2. **NeoForge host resource-manager integration**: the extracted
+   `resources/` dir is registered with the Prismate-managed classloader
+   (v26.1-Alpha.4), so mods loaded through it serve their own resource
+   entries (`getResource`/`getResourceAsStream` resolve; verified real-game
+   with the ressmoke probe returning `visible=true`). What NeoForge still
+   lacks is host-level resource-manager integration — visibility to the
+   host's own resource reload / other mods — because FML 11 exposes no
+   runtime resource-injection API. Tracked with OPEN-5.
 3. **Forge (classic) not supported**: the `forge/` module is a visible stub
    that refuses to boot with a named error; Forge support defers post-1.0
    (DECISION-1 re-confirmed at v26.0-Alpha.5).
@@ -331,7 +342,14 @@ were resolved against the pinned loader versions with real-game verification
    own injection succeeds, host-loaded mod classes rely on the host's own
    widener mechanism (Fabric applies `fabric.mod.json` accessWidener for mods
    it discovered itself). Recorded at v26.0-Alpha.4 per docs §3.3.
-5. **Intermediary remap boundary (1.20/1.21 segments)**: Prismate loads `.aje`
+5. **NeoForge version line = 26.x only (v26.1 decision)**: the NeoForge
+   bridge is written against FML 11 (`FMLLoader.getCurrent()`, constructor
+   injection of the mod-scoped event bus). NeoForge for 1.20.2-1.21.x runs
+   FML 2-4 — a different API surface — so the NeoForge artifact is
+   intentionally pinned to the 26.x line (neoforge.mods.toml
+   `versionRange = "[26.2,)"`); backporting to FML 2-4 is out of scope for
+   v26.1. The Fabric bridge covers the 1.20/1.21 segments instead.
+6. **Intermediary remap boundary (1.20/1.21 segments)**: Prismate loads `.aje`
    packs as-is; it does NOT remap obfuscated classes. On the REMAPPED JE
    segments (1.20.x / 1.21.x, obfuscated) a pack's compiled classes must
    already match the running game, and Intermediary remapping remains the
@@ -340,7 +358,7 @@ were resolved against the pinned loader versions with real-game verification
    sample packs (Aprism API + classloader only); a Mixin targeting
    `net.minecraft.client.Minecraft` is deliberately excluded there because
    that class is obfuscated.
-6. **Java runtime floor = 21 (not the 1.20/1.21 official Java 17)**: the
+7. **Java runtime floor = 21 (not the 1.20/1.21 official Java 17)**: the
    embedded `com.aprism.api` in the shaded artifact is Java 21 bytecode
    (upstream Aprism compiles at `--release 21`). Empirically verified
    (v26.1-Alpha.3): a release-17 probe class loads on JRE 17, but loading

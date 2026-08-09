@@ -51,6 +51,25 @@ public final class PrismateModClassLoader extends URLClassLoader {
     }
 
     /**
+     * Adds an extracted {@code resources/} directory to this classloader's
+     * search path (v26.1-Alpha.4). This makes a pack's resource entries
+     * resolvable via {@code getResource}/{@code getResourceAsStream} for
+     * classes loaded through this loader, closing the NeoForge resource gap
+     * at the classloader level where the host offers no resource-injection
+     * path. Host-level resource-manager integration (visible to the host's
+     * own resource reload) remains a separate, host-specific concern.
+     *
+     * @param resourcesDir the extracted resources directory to add
+     */
+    public void addResourceDir(java.nio.file.Path resourcesDir) {
+        try {
+            addURL(resourcesDir.toUri().toURL());
+        } catch (java.net.MalformedURLException e) {
+            throw new IllegalArgumentException("Cannot convert to URL: " + resourcesDir, e);
+        }
+    }
+
+    /**
      * @return the access widener applied to classes loaded by this loader
      */
     public PrismateAccessWidener getWidener() {
