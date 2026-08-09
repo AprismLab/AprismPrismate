@@ -341,3 +341,47 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
   and resource-dir injection remain the Alpha.4+ items.
 - [STATUS] v26.0-Alpha.3 verified on both Fabric (Alpha.2) and NeoForge
   (Alpha.3) real games.
+
+### Session 2026-08-09 (v26.0-Alpha.4-Phase0) - Parity hardening
+- [DONE] Access widener support (Prismate-side bytecode pass): new
+  PrismateAccessWidener (Fabric accessWidener v1 rule parser + ASM widening
+  visitor; accessible/extendable/mutable on class/method/field, O(1) per-class
+  rule lookup, zero-overhead passthrough when no rules match). Wired into
+  PrismateModClassLoader.findClass so classes loading through the managed
+  classloader are widened at define time; EmbeddedRuntime.registerAccessWidener
+  parses each pack's manifest-declared accessWidener file and isolates a
+  malformed widener as a named classpath failure for that pack only.
+- [FIXED] Jar-lock regression introduced by the in-flight widener work:
+  reading class bytes through url.openStream() parked opened JarFiles in the
+  static JarURLConnection cache, holding Windows file locks past
+  URLClassLoader.close() and breaking @TempDir cleanup (13 tests failed).
+  Fixed with useCaches=false plus a fast path that skips the read entirely for
+  classes without widener rules.
+- [DONE] JiJ lib/ end-to-end coverage: EmbeddedRuntimeTest$JiJLib proves
+  lib/*.jar is extracted and injected alongside the main jar.
+- [DONE] Crash/error report files: EmbeddedRuntime.writeReportFile() writes the
+  full load report (every named failure with pack + reason) to
+  <gameDir>/prismate/reports/load-report.txt; PrismateBootstrap.logReport()
+  writes it after the COMPLETE dispatch. Error-report polish pass confirmed
+  every LoadFailure renders stage + pack id + file name + reason.
+- [DONE] Shadow relocation updated for the widener: ASM is now bundled with
+  common (implementation scope) and relocated to com.aprism.prismate.libs.asm
+  in both the Fabric and NeoForge shaded jars so it never collides with the
+  ASM version the host loader ships.
+- [DONE] Tests: PrismateAccessWidenerTest (13: parsing validation x5, ASM
+  transform x8) + PrismateModClassLoaderWidenerTest (3: load-time widening,
+  unrelated-class passthrough, no-rules passthrough) + JiJ lib injection +
+  report file tests. 72 tests green on JDK 21 Temurin.
+- [VERIFIED] Real-game Fabric smoke PASS against the v26.0-Alpha.4 jar: full
+  lifecycle (PREINIT/INIT/SETUP/COMPLETE), mixin passthrough woven into the
+  real Minecraft class, resource injection visible, and the load report file
+  written in-game (Loaded 6, failed 0).
+- [NOTE] Known semantic boundary (recorded per docs 01 Section 3.3): the
+  Prismate-side widener applies to classes resolved through the managed
+  classloader; when the host loader's own injection succeeds, host-loaded mod
+  classes rely on the host's own widener mechanism (Fabric applies fabric.mod.json
+  accessWidener for mods it discovered itself). This mirrors the docs'
+  "Prismate-side bytecode pass when the host has none" clause and will be
+  documented in the Alpha.7 known-issues pass.
+- [DONE] Version bumped to v26.0-Alpha.4 (gradle.properties, artifact-name
+  comments). Full suite green + real-game smoke pass; committed and tagged.

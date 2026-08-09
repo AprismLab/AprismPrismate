@@ -283,4 +283,83 @@ class EmbeddedRuntimeTest {
             runtime.close();
         }
     }
+
+    @Nested
+    @DisplayName("JiJ lib dependencies")
+    class JiJLib {
+
+        @Test
+        @DisplayName("extracts and injects lib/*.jar alongside the main jar")
+        void libJarsInjected() throws Exception {
+            String className = "com.test.LibMod";
+            String manifest = TestFixtures.manifestJson("libmod", "1.0.0", "*", className, null);
+            byte[] modClass = TestFixtures.generateRecordingMod(className, "libmod");
+            byte[] mainJar = TestFixtures.jarBytes(Map.of(
+                    className.replace('.', '/') + ".class", modClass));
+            byte[] libJar = TestFixtures.jarBytes(Map.of("lib/Dep.class", new byte[]{1}));
+            java.util.Map<String, byte[]> extra = new java.util.LinkedHashMap<>();
+            extra.put("lib/deplib.jar", libJar);
+            TestFixtures.writeAje(modsDir.resolve("libmod.aje"), manifest, "libmod", mainJar, extra);
+
+            EmbeddedRuntime runtime = EmbeddedRuntime.create(bridge, config);
+            runtime.boot();
+
+            List<String> injectedNames = bridge.injectedJars().stream()
+                    .map(p -> p.getFileName().toString()).toList();
+            assertThat(injectedNames).contains("libmod.jar", "deplib.jar");
+            runtime.close();
+        }
+    }
+
+    @Nested
+    @DisplayName("Access widener")
+    class AccessWidener {
+
+        @Test
+        @DisplayName("registers a manifest-declared access widener with the managed classloader")
+        void registersDeclaredWidener() throws Exception {
+            String className = "com.test.WidenMod";
+            String manifest = TestFixtures.manifestJson("widenmod", "1.0.0", "*", className, null)
+                    .replace("\"accessWidener\": null", "\"accessWidener\": \"widenmod.accesswidener\"");
+            byte[] modClass = TestFixtures.generateRecordingMod(className, "widenmod");
+            byte[] jar = TestFixtures.jarBytes(Map.of(
+                    className.replace('.', '/') + ".class", modClass));
+            String widenerText = "accessWidener v1 named\n"
+                    + "accessible class net/minecraft/client/Minecraft\n";
+            java.util.Map<String, byte[]> extra = new java.util.LinkedHashMap<>();
+            extra.put("widenmod.accesswidener", widenerText.getBytes());
+            TestFixtures.writeAje(modsDir.resolve("widenmod.aje"), manifest, "widenmod", jar, extra);
+
+            EmbeddedRuntime runtime = EmbeddedRuntime.create(bridge, config);
+            runtime.boot();
+
+            // The classpath entry succeeded (no failure recorded for widenmod)
+            assertThat(runtime.getMod("widenmod")).isNotNull();
+            assertThat(runtime.getFailures()).noneSatisfy(f ->
+                    assertThat(f.render()).contains("widenmod"));
+            runtime.close();
+        }
+    }
+
+    @Nested
+    @DisplayName("Report file")
+    class ReportFile {
+
+        @Test
+        @DisplayName("writes the load report to <gameDir>/prismate/reports/load-report.txt")
+        void writesReportFile() throws Exception {
+            writeMod("reportmod", "com.test.ReportMod", null);
+            EmbeddedRuntime runtime = EmbeddedRuntime.create(bridge, config);
+            runtime.boot();
+            runtime.dispatchCommonLifecycle();
+
+            java.nio.file.Path reportFile = runtime.writeReportFile();
+            assertThat(reportFile).isNotNull();
+            assertThat(reportFile.getFileName().toString()).isEqualTo("load-report.txt");
+            String content = java.nio.file.Files.readString(reportFile);
+            assertThat(content).contains("AprismPrismate Load Report");
+            assertThat(content).contains("reportmod");
+            runtime.close();
+        }
+    }
 }

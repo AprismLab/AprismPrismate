@@ -26,7 +26,7 @@ tasks.named('processResources') {
     }
 }
 
-// Per-loader artifact: AprismPrismate-v26.0-Alpha.1-Fa-26.2.jar
+// Per-loader artifact: AprismPrismate-v26.0-Alpha.4-Fa-26.2.jar
 shadowJar {
     archiveFileName = "AprismPrismate-${project.version}-Fa-${project.minecraftVersion}.jar"
 
@@ -35,6 +35,9 @@ shadowJar {
     // to the canonical API classes.
     relocate 'com.aprism.manifest', 'com.aprism.prismate.internal.manifest'
     relocate 'com.google.gson', 'com.aprism.prismate.libs.gson'
+    // ASM is bundled for the Prismate-side access-widener pass; relocate it so
+    // it never collides with the ASM version the host loader ships.
+    relocate 'org.objectweb.asm', 'com.aprism.prismate.libs.asm'
 
     mergeServiceFiles()
     exclude 'META-INF/*.SF'

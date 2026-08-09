@@ -334,9 +334,7 @@ public final class EmbeddedRuntime {
                     bridge.offerMixinConfig(mixinConfig);
                 }
                 if (pack.manifest().accessWidener() != null) {
-                    bridge.log("Mod " + container.getId() + " declares accessWidener '"
-                            + pack.manifest().accessWidener() + "'; access wideners are not yet "
-                            + "applied on this host loader (planned for v26.0-Alpha.4)");
+                    registerAccessWidener(container, pack);
                 }
                 report.recordOk("classpath", container.getId(), container.getVersion(), ms(t0));
             } catch (RuntimeException e) {
@@ -346,6 +344,32 @@ public final class EmbeddedRuntime {
                         ms(t0), e.getMessage());
                 mods.remove(container.getId());
             }
+        }
+    }
+
+    /**
+     * Registers the access widener a pack declares with the Prismate-managed
+     * classloader. Host loaders apply no widener pass to runtime-injected
+     * jars, so Prismate applies the Fabric-style rules itself when classes
+     * load through its loader (docs 01 Section 6 step 5 parity). A malformed
+     * widener is isolated as a named classpath failure for that pack only.
+     */
+    private void registerAccessWidener(PrismateModContainer container,
+            AjeExtractor.ExtractedPack pack) {
+        try {
+            if (fallbackLoader == null) {
+                fallbackLoader = new PrismateModClassLoader(getClass().getClassLoader());
+            }
+            Path widenerFile = pack.workDir().resolve(pack.manifest().accessWidener());
+            fallbackLoader.getWidener().parseFile(widenerFile);
+            bridge.log("Applied access widener '" + pack.manifest().accessWidener()
+                    + "' for mod " + container.getId() + " ("
+                    + fallbackLoader.getWidener().ruleCount() + " rule(s) registered)");
+        } catch (java.io.IOException | RuntimeException e) {
+            failures.add(new LoadFailure(LoadFailure.CLASSPATH, container.getId(),
+                    pack.sourceAje().getFileName().toString(),
+                    "access widener '" + pack.manifest().accessWidener()
+                            + "' could not be applied: " + e));
         }
     }
 
@@ -488,6 +512,31 @@ public final class EmbeddedRuntime {
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * Writes the rendered report into
+     * {@code <gameDir>/prismate/reports/load-report.txt} (v26.0-Alpha.4 crash
+     * and error reporting). Also mirrors each named failure into its own line
+     * so bug reports can be filed directly from the file. Never throws: a
+     * write failure is logged and swallowed.
+     *
+     * @return the written report file, or {@code null} on write failure
+     */
+    public Path writeReportFile() {
+        try {
+            Path reportsDir = bridge.gameDir().resolve("prismate").resolve("reports");
+            java.nio.file.Files.createDirectories(reportsDir);
+            Path reportFile = reportsDir.resolve("load-report.txt");
+            String content = renderReport() + "\n\nGenerated: "
+                    + java.time.LocalDateTime.now().withNano(0).toString() + "\n";
+            java.nio.file.Files.writeString(reportFile, content,
+                    java.nio.charset.StandardCharsets.UTF_8);
+            return reportFile;
+        } catch (java.io.IOException | RuntimeException e) {
+            bridge.log("Could not write the Prismate report file: " + e);
+            return null;
+        }
     }
 
     /**

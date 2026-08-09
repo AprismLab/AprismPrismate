@@ -1,5 +1,7 @@
 package com.aprism.prismate;
 
+import java.nio.file.Path;
+
 import com.aprism.api.AprismPhase;
 import com.aprism.prismate.config.PrismateConfig;
 import com.aprism.prismate.host.HostBridge;
@@ -127,13 +129,19 @@ public final class PrismateBootstrap {
     }
 
     /**
-     * Logs the startup load report including all named failures.
+     * Logs the startup load report including all named failures, and writes it
+     * to {@code <gameDir>/prismate/reports/load-report.txt} so users can file
+     * bug reports directly from the file (v26.0-Alpha.4).
      */
     public void logReport() {
         if (runtime == null) {
             return;
         }
         bridge.log("\n" + runtime.renderReport());
+        Path reportFile = runtime.writeReportFile();
+        if (reportFile != null) {
+            bridge.log("Prismate load report written to " + reportFile);
+        }
     }
 
     /**

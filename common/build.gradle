@@ -14,7 +14,12 @@ dependencies {
     // JSON for Prismate's own config (bundled + relocated at shading time)
     api libs.gson
 
-    // ASM is only needed by tests that synthesize jar-only entrypoints
+    // ASM for the Prismate-side access-widener bytecode pass (bundled +
+    // relocated at shading time). The host loaders also ship ASM, so the
+    // shaded copy is relocated to com.aprism.prismate.libs.asm.
+    implementation 'org.ow2.asm:asm:9.9'
+
+    // ASM is also needed by tests that synthesize jar-only entrypoints
     testImplementation 'org.ow2.asm:asm:9.9'
     testImplementation libs.bundles.testing
 }
