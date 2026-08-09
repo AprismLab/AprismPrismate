@@ -1,7 +1,7 @@
 # AprismPrismate Architecture Design
 
 > Document 1 of 2 | AprismPrismate Documentation Set
-> Version: v26.0-Alpha.1 (planned) | Status: Design
+> Version: v26.0-Alpha.9 | Status: Implemented (release candidate)
 > Author: BlockConnect@StarsailsClover
 > Canonical language: English (Chinese summary in README.zh-CN.md)
 
@@ -286,26 +286,52 @@ javaagent in the same instance (mutual exclusion, Section 9.2).
 
 ## 11. Open Items and Decisions (track to resolution)
 
-| # | Item | Type | Suggested resolution |
+Status as of v26.0-Alpha.9 (release candidate). OPEN-1 and OPEN-3 were closed
+upstream in Aprism core and adopted by Prismate (Alpha.6); OPEN-4 and OPEN-5
+were resolved against the pinned loader versions with real-game verification
+(Alpha.2 / Alpha.3); OPEN-2 and DECISION-1 (Forge) are deferred post-1.0.
+
+| # | Item | Type | Resolution |
 |---|---|---|---|
-| OPEN-1 | No `aprism` env ID in Aprism's dependency environment map | Aprism core gap | Aprism adds `environment.put("aprism", aprismVersion)`; Prismate self-injects until then |
-| OPEN-2 | No `forge` env ID | Aprism core gap | Low priority; add if Forge `.aje` deps are needed |
-| OPEN-3 | Agent-vs-Prismate detection mechanism | needs Aprism cooperation | Agent sets a system property (e.g. `aprism.agent.active=true`); Prismate checks it and refuses to boot |
-| OPEN-4 | Fabric Knot classloader injection API stability | Fabric-version dependent | Confirm against pinned Fabric Loader version; prefer `Knot`/delegate add-jar API |
-| OPEN-5 | NeoForge/Forge classpath extension API | loader-version dependent | Confirm against pinned NeoForge/Forge versions |
-| DECISION-1 | Is Forge (legacy) in Alpha 1 scope? | scope | Suggest Fabric + NeoForge first; stub Forge |
-| DECISION-2 | Where `.aje` packs are discovered | UX | Default `<gameDir>/mods/`; optional config for extra dirs |
-| DECISION-3 | Whether to support `lib/` JiJ-style bundled deps in Alpha 1 | scope | Suggest yes (extract + inject like main jar) for parity with Aprism |
+| OPEN-1 | No `aprism` env ID in Aprism's dependency environment map | Aprism core gap | CLOSED upstream (Aprism `loadMods` supplies the normalized Aprism version under `aprism`); Prismate self-injection retained as fallback for older embedded cores (Alpha.6) |
+| OPEN-2 | No `forge` env ID | Aprism core gap | DEFERRED post-1.0 with the Forge module (DECISION-1) |
+| OPEN-3 | Agent-vs-Prismate detection mechanism | needs Aprism cooperation | CLOSED upstream (Aprism agent sets `aprism.agent.active=true`); Prismate checks it first, system-classloader probe retained as fallback (Alpha.6) |
+| OPEN-4 | Fabric Knot classloader injection API stability | Fabric-version dependent | RESOLVED for Fabric Loader 0.16.14: `FabricLauncherBase.getLauncher().addToClassPath(Path, ...)`, verified live in-game (Alpha.2) |
+| OPEN-5 | NeoForge/Forge classpath extension API | loader-version dependent | RESOLVED for NeoForge 26.2.0.53-beta: degrades to the Prismate-managed classloader (documented path); host Mixin passthrough + resource injection on NeoForge remain known limitations (Alpha.3) |
+| DECISION-1 | Is Forge (legacy) in Alpha 1 scope? | scope | RE-CONFIRMED (Alpha.5): Forge (classic) stays OUT of the v26.0 Alpha line, defers post-1.0; `forge/` is a visible stub |
+| DECISION-2 | Where `.aje` packs are discovered | UX | RESOLVED: default `<gameDir>/mods/` (recursive); extra dirs via `<gameDir>/prismate/prismate.json` `extraAjeDirs` |
+| DECISION-3 | Whether to support `lib/` JiJ-style bundled deps in Alpha 1 | scope | RESOLVED: supported from Alpha.1; `lib/*.jar` extracted and injected like the main jar |
 
-## 12. Milestones (proposed)
+## 12. Milestones (as shipped)
 
-| Milestone | Scope | Exit criteria |
-|---|---|---|
-| M1 | Project scaffold + common runtime + Fabric entrypoint | Prismate boots in Fabric, discovers a sample `.aje`, drives lifecycle, mod's `onInitialize` runs |
-| M2 | Fabric classloader injection + resources/mixins | A real `.aje` with resources + a mixin loads and renders content |
-| M3 | NeoForge entrypoint + bridge | Same sample `.aje` loads on NeoForge |
-| M4 | Forge entrypoint (if in scope) | sample loads on Forge |
-| M5 | Mutual-exclusion guard + error reporting polish | agent-present case refuses cleanly; malformed packs report clearly |
-| M6 | Signing + release pipeline (mirror Aprism/Refract) | cosign-signed Pre-Release artifacts published |
+| Milestone | Scope | Exit criteria | Shipped |
+|---|---|---|---|
+| M1 | Project scaffold + common runtime + Fabric entrypoint | Prismate boots in Fabric, discovers a sample `.aje`, drives lifecycle, mod's `onInitialize` runs | v26.0-Alpha.1 (headless) / v26.0-Alpha.2 (real game) |
+| M2 | Fabric classloader injection + resources/mixins | A real `.aje` with resources + a mixin loads and renders content | v26.0-Alpha.2 |
+| M3 | NeoForge entrypoint + bridge | Same sample `.aje` loads on NeoForge | v26.0-Alpha.3 |
+| M4 | Forge entrypoint (if in scope) | sample loads on Forge | Deferred post-1.0 (DECISION-1 re-confirmed at v26.0-Alpha.5); visible stub refuses to boot |
+| M5 | Mutual-exclusion guard + error reporting polish | agent-present case refuses cleanly; malformed packs report clearly | v26.0-Alpha.1 (guard) / v26.0-Alpha.4 (report files) / v26.0-Alpha.6 (upstream alignment) |
+| M6 | Signing + release pipeline (mirror Aprism/Refract) | cosign-signed Pre-Release artifacts published | v26.0-Alpha.1 (pipelines) / verified in place at v26.0-Alpha.7 |
+
+## 13. Known Issues (v26.0 release candidate)
+
+1. **NeoForge host Mixin passthrough**: `.aje` mixin configs cannot be
+   registered with NeoForge's already-initialized Mixin environment
+   (`Mixins.addConfiguration` throws). `.aje` mods that rely on Mixin work on
+   Fabric but their mixins are not applied on NeoForge. Tracked with OPEN-5.
+2. **NeoForge resource-dir injection**: extracted `resources/` dirs are not
+   yet injected into NeoForge's resource loading (the Fabric path works).
+   Tracked with OPEN-5.
+3. **Forge (classic) not supported**: the `forge/` module is a visible stub
+   that refuses to boot with a named error; Forge support defers post-1.0
+   (DECISION-1 re-confirmed at v26.0-Alpha.5).
+4. **Prismate-side access widener boundary**: the widener applies to classes
+   resolved through the Prismate-managed classloader; when a host loader's
+   own injection succeeds, host-loaded mod classes rely on the host's own
+   widener mechanism (Fabric applies `fabric.mod.json` accessWidener for mods
+   it discovered itself). Recorded at v26.0-Alpha.4 per docs §3.3.
+5. **MC target pinned to 26.2**: the v26.0 line targets Minecraft 26.2 only
+   (unobfuscated, no remap); other MC versions follow the Aprism priority
+   targets in later minors.
 
 End of document.

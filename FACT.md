@@ -61,6 +61,14 @@ with it in one instance (docs 01 §9.2).
   mod id; jars under `resources/` or `mixins/` are violations; per-loader
   subdirectories are violations. Violations are named load failures, never
   silent skips.
+- **DECISION-4 (API/config freeze, v26.0-Alpha.9):** the public surface is
+  FROZEN for the v26.0 line. Frozen = the `aprism-api` interface contract
+  (`IAprismMod`/`AprismContext`/`AprismPhase`/event bus/registry), the
+  `.aje` manifest schema Prismate honors, the `prismate/prismate.json` config
+  keys (`enabled`, `extraAjeDirs`), the `HostBridge` SPI, and the per-loader
+  artifact naming. Additions are allowed only under the monotonic-increment
+  contract (never remove/rename); deprecation with notice only. No new
+  behavior lands in v26.0 after this freeze; fixes go to v26.0 official only.
 
 ### Open items (tracked to resolution)
 
@@ -78,15 +86,16 @@ with it in one instance (docs 01 §9.2).
   system-classloader probe for an initialized `com.aprism.loader.AprismRuntime`
   is retained as the fallback for Aprism agent versions that predate the
   property.
-- **OPEN-4 (Fabric Knot injection API):** the Fabric bridge resolves the
-  add-jar entry point reflectively (`FabricLauncherBase#getLauncher().addURL`,
-  Knot fallback) at runtime against the pinned Fabric Loader. Real-game
-  verification is the v26.0-Alpha.2 exit criterion. Until verified, the
-  documented URLClassLoader fallback keeps the pipeline functional.
-- **OPEN-5 (NeoForge classpath extension):** no official runtime jar-injection
-  API; Alpha.1 ships the documented URLClassLoader fallback with a clear
-  warning. Real NeoForge integration (module layer / mod file participation)
-  is the v26.0-Alpha.3 milestone.
+- **OPEN-4 (Fabric Knot injection API):** RESOLVED for Fabric Loader 0.16.14
+  (Alpha.2): the stable injection entry point is
+  `FabricLauncherBase.getLauncher().addToClassPath(Path, ...)`, reached
+  reflectively and verified live in-game (no degraded-mode fallback).
+- **OPEN-5 (NeoForge classpath extension):** RESOLVED for NeoForge
+  26.2.0.53-beta (Alpha.3): no official runtime jar-injection API exists under
+  FML 11's JPMS module layer, so Prismate degrades to its managed classloader
+  (the documented path, works and verified). Host Mixin passthrough
+  (Mixins.addConfiguration throws under FML's already-initialized environment)
+  and resource-dir injection remain known limitations on NeoForge.
 
 ## 5. Roadmap: v26.0-Alpha.1 -> v26.0 official
 
@@ -467,3 +476,24 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
   Alpha.7, same 3-pack soak). Headless suite 77 tests green; build artifacts
   relocation layout re-verified.
 - [DONE] Version bumped to v26.0-Alpha.8.
+
+### Session 2026-08-09 (v26.0-Alpha.9-Phase0) - Release candidate
+- [DONE] Docs 01/02 updated from Design to Implemented (release candidate):
+  version headers bumped to v26.0-Alpha.9.
+- [DONE] docs 01 §11 Open Items rewritten to final resolution status (OPEN-1/3
+  closed upstream, OPEN-4 resolved, OPEN-5 resolved via degraded path); §12
+  milestones rewritten to as-shipped status; new §13 Known Issues added
+  (NeoForge Mixin passthrough, NeoForge resource injection, Forge stub,
+  Prismate-side widener boundary, MC 26.2 pin).
+- [DONE] DECISION-4 recorded: API/config freeze for the v26.0 line
+  (aprism-api contract, .aje manifest schema, prismate.json config keys,
+  HostBridge SPI, artifact naming) under the monotonic-increment contract.
+- [DONE] FACT.md OPEN-4/OPEN-5 entries updated to final resolved status.
+- [DONE] Version bumped to v26.0-Alpha.9.
+- [VERIFIED] REGRESSION PASS on v26.0-Alpha.9 artifacts: all three real-game
+  harnesses green (Fabric lifecycle + mixin + resources, NeoForge lifecycle +
+  report, Fabric multi-mod soak). Soak startup baseline improved to 8887 ms
+  total boot (vs 9352 ms at Alpha.8, same 3-pack soak). Headless suite 77
+  tests green; build successful.
+- [DONE] Final soak green; committed + tagged v26.0-Alpha.9 (release
+  candidate). v26.0 official is the next step.

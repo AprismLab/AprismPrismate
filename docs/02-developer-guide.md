@@ -1,7 +1,7 @@
 # AprismPrismate Developer Guide
 
 > Document 2 of 2 | AprismPrismate Documentation Set
-> Version: v26.0-Alpha.1 (planned) | Status: Design
+> Version: v26.0-Alpha.9 | Status: Implemented (release candidate)
 > Author: BlockConnect@StarsailsClover
 > Canonical language: English
 
