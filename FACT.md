@@ -301,3 +301,43 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
 - [STATUS] v26.0-Alpha.2 scope (Fabric real-game landing + mixin passthrough
   + resources) verified; NeoForge real-game landing is the next milestone
   (Alpha.3 per the roadmap).
+
+### Session 2026-08-09 (v26.0-Alpha.3-Phase0) - Real-game NeoForge landing
+- [DONE] Real NeoForge verification harness (tools/smoke/): setup_neoforge_env.sh
+  builds build/smoke-neoforge/libraries (vanilla MC 26.2 libraries from the
+  Aprism smoke env + NeoForge 26.2.0.53-beta libraries from maven.neoforged.net
+  + installertools-patched client jar); build_neoforge_client_args.sh merges the
+  vanilla client classpath with the FML boot libraries and writes the @argfile.
+- [VERIFIED] Vanilla NeoForge 26.2.0.53-beta boots to the main menu from this
+  harness first (environment health proof) before Prismate was added.
+- [VERIFIED] SMOKE PASS with Prismate on real NeoForge 26.2:
+  (1) Prismate loaded as a genuine NeoForge mod into FML 11's JPMS module
+  layer ("aprismprismate" in the game content classloader, version
+  26.2.0.53-beta detected via FMLLoader.getCurrent().getVersionInfo());
+  (2) 3 .aje packs discovered/extracted/injected;
+  (3) full PREINIT->INIT->SETUP->COMPLETE lifecycle dispatched inside the live
+  game ([ExampleMod] all four phases);
+  (4) Load Report printed: Loaded 6, failed 0; game continued to render.
+- [FIXED] FML 11 API migration: FMLJavaModLoadingContext was removed in FML 11;
+  the entrypoint now takes the mod-scoped IEventBus via constructor injection.
+  NeoForgeHostBridge probes FMLLoader.getCurrent() (instance API) with a
+  fallback to the legacy static versionInfo().
+- [FIXED] Module-layer hygiene: slf4j (59 classes, transitive from the Aprism
+  API) is excluded from the shaded jar — Prismate uses java.util.logging and
+  bundling slf4j caused LinkageError between the app loader and the module
+  classloader.
+- [FIXED] Production launch anatomy (recorded for future harnesses): the
+  NeoForge installer's win_args.txt is a SERVER template; a client launch needs
+  the merged vanilla-client + FML-boot library set, the patched client jar and
+  NeoForge universal jar must NOT be on -cp (FML locates them from
+  libraryDirectory), earlyWindowControl=false in config/fml.toml for headless,
+  and the jar manifest version must be Maven-legal (no 'v' prefix).
+- [NOTE] Toolchain: the neoforge module compiles with a Java 25 toolchain
+  (FML 11 jars are class file version 69) but emits release-21 bytecode so the
+  shadow plugin's ASM can remap and the artifact stays portable.
+- [OPEN] OPEN-5 refined for FML 11: classpath injection degrades to the
+  Prismate-managed classloader (works, verified above); host Mixin passthrough
+  (Mixins.addConfiguration throws under FML's already-initialized environment)
+  and resource-dir injection remain the Alpha.4+ items.
+- [STATUS] v26.0-Alpha.3 verified on both Fabric (Alpha.2) and NeoForge
+  (Alpha.3) real games.

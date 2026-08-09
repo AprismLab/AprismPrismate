@@ -41,6 +41,10 @@ shadowJar {
     exclude 'META-INF/*.DSA'
     exclude 'META-INF/*.RSA'
     exclude 'module-info.class'
+    // Prismate uses java.util.logging, not slf4j. The host loader provides
+    // slf4j on the classpath; bundling it risks duplicate-class conflicts.
+    exclude 'org/slf4j/**'
+    exclude 'com/google/errorprone/**'
 
     // Build-time check (docs 02 Section 6): com/aprism/api MUST remain
     // unrelocated in the shaded jar.

@@ -55,12 +55,13 @@ public final class NeoForgeHostBridge implements HostBridge {
     @Override
     public String hostLoaderVersion() {
         try {
-            Class<?> fmlLoader = Class.forName("net.neoforged.fml.loading.FMLLoader");
-            Object versionInfo = fmlLoader.getMethod("versionInfo").invoke(null);
-            Object neoForgeVersion = versionInfo.getClass().getMethod("neoForgeVersion")
-                    .invoke(versionInfo);
-            if (neoForgeVersion != null && !neoForgeVersion.toString().isBlank()) {
-                return neoForgeVersion.toString();
+            Object versionInfo = versionInfo();
+            if (versionInfo != null) {
+                Object neoForgeVersion = versionInfo.getClass().getMethod("neoForgeVersion")
+                        .invoke(versionInfo);
+                if (neoForgeVersion != null && !neoForgeVersion.toString().isBlank()) {
+                    return neoForgeVersion.toString();
+                }
             }
         } catch (ReflectiveOperationException | RuntimeException e) {
             // fall through to the pin
@@ -71,11 +72,13 @@ public final class NeoForgeHostBridge implements HostBridge {
     @Override
     public String minecraftVersion() {
         try {
-            Class<?> fmlLoader = Class.forName("net.neoforged.fml.loading.FMLLoader");
-            Object versionInfo = fmlLoader.getMethod("versionInfo").invoke(null);
-            Object mcVersion = versionInfo.getClass().getMethod("mcVersion").invoke(versionInfo);
-            if (mcVersion != null && !mcVersion.toString().isBlank()) {
-                return mcVersion.toString();
+            Object versionInfo = versionInfo();
+            if (versionInfo != null) {
+                Object mcVersion = versionInfo.getClass().getMethod("mcVersion")
+                        .invoke(versionInfo);
+                if (mcVersion != null && !mcVersion.toString().isBlank()) {
+                    return mcVersion.toString();
+                }
             }
         } catch (ReflectiveOperationException | RuntimeException e) {
             // fall through to the pin
@@ -89,8 +92,9 @@ public final class NeoForgeHostBridge implements HostBridge {
             return sideOverride;
         }
         try {
-            Class<?> fmlEnvironment = Class.forName("net.neoforged.fml.loading.FMLEnvironment");
-            Object dist = fmlEnvironment.getField("dist").get(null);
+            Object loader = Class.forName("net.neoforged.fml.loading.FMLLoader")
+                    .getMethod("getCurrent").invoke(null);
+            Object dist = loader.getClass().getMethod("getDist").invoke(loader);
             return "CLIENT".equalsIgnoreCase(dist.toString())
                     ? EnvSide.CLIENT
                     : EnvSide.DEDICATED_SERVER;
@@ -105,8 +109,9 @@ public final class NeoForgeHostBridge implements HostBridge {
             return gameDirOverride;
         }
         try {
-            Class<?> fmlLoader = Class.forName("net.neoforged.fml.loading.FMLLoader");
-            Object gamePath = fmlLoader.getMethod("getGamePath").invoke(null);
+            Object loader = Class.forName("net.neoforged.fml.loading.FMLLoader")
+                    .getMethod("getCurrent").invoke(null);
+            Object gamePath = loader.getClass().getMethod("getGameDir").invoke(loader);
             if (gamePath instanceof Path path) {
                 return path;
             }
@@ -114,6 +119,22 @@ public final class NeoForgeHostBridge implements HostBridge {
             // fall through
         }
         return Path.of(".");
+    }
+
+    /**
+     * Resolves the FML {@code VersionInfo} record. FML 11 exposes it as an
+     * instance method on the current loader ({@code FMLLoader.getCurrent()});
+     * older FML releases exposed a static {@code versionInfo()} method. Both
+     * shapes are tried.
+     */
+    private static Object versionInfo() throws ReflectiveOperationException {
+        Class<?> fmlLoader = Class.forName("net.neoforged.fml.loading.FMLLoader");
+        try {
+            Object loader = fmlLoader.getMethod("getCurrent").invoke(null);
+            return loader.getClass().getMethod("getVersionInfo").invoke(loader);
+        } catch (ReflectiveOperationException e) {
+            return fmlLoader.getMethod("versionInfo").invoke(null);
+        }
     }
 
     @Override

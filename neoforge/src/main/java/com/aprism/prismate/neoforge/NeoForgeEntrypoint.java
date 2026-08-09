@@ -9,7 +9,6 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLDedicatedServerSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
-import net.neoforged.fml.javafmlmod.FMLJavaModLoadingContext;
 
 /**
  * The NeoForge entrypoint of AprismPrismate (docs 01 Section 8.2). The
@@ -36,20 +35,34 @@ public final class NeoForgeEntrypoint {
 
     /**
      * NeoForge constructs this class during mod construction (the earliest
-     * available hook).
+     * available hook). FML injects the mod-scoped {@link IEventBus} through
+     * the constructor (FML 11 removed the thread-local
+     * {@code FMLJavaModLoadingContext}; constructor injection is the
+     * supported way to obtain the bus).
+     *
+     * @param modBus the mod-scoped event bus injected by FML
      */
-    public NeoForgeEntrypoint() {
-        this.bootstrap = new PrismateBootstrap(new NeoForgeHostBridge());
-        PrismateBootstrap.BootOutcome outcome = bootstrap.bootEarly();
-        if (outcome != PrismateBootstrap.BootOutcome.OK) {
-            return; // refused (agent conflict), disabled, or boot failed
-        }
-        bootstrap.dispatchEarlyLifecycle(); // PREINIT -> INIT -> SETUP
+    @SuppressWarnings({"deprecation", "removal"})
+    public NeoForgeEntrypoint(IEventBus modBus) {
+        try {
+            this.bootstrap = new PrismateBootstrap(new NeoForgeHostBridge());
+            PrismateBootstrap.BootOutcome outcome = bootstrap.bootEarly();
+            if (outcome != PrismateBootstrap.BootOutcome.OK) {
+                return; // refused (agent conflict), disabled, or boot failed
+            }
+            bootstrap.dispatchEarlyLifecycle(); // PREINIT -> INIT -> SETUP
 
-        IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
-        modBus.addListener(FMLClientSetupEvent.class, this::onClientSetup);
-        modBus.addListener(FMLDedicatedServerSetupEvent.class, this::onServerSetup);
-        modBus.addListener(FMLLoadCompleteEvent.class, this::onLoadComplete);
+            modBus.addListener(FMLClientSetupEvent.class, this::onClientSetup);
+            modBus.addListener(FMLDedicatedServerSetupEvent.class, this::onServerSetup);
+            modBus.addListener(FMLLoadCompleteEvent.class, this::onLoadComplete);
+        } catch (Throwable t) {
+            // NeoForge shows fatal errors in a GUI dialog that is invisible
+            // from a console harness; mirror the failure to stderr so the
+            // smoke log captures the root cause before the dialog appears.
+            System.err.println("[PRISMATE-NEOFORGE] entrypoint construction failed:");
+            t.printStackTrace(System.err);
+            throw t;
+        }
     }
 
     private void onClientSetup(FMLClientSetupEvent event) {

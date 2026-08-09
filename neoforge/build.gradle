@@ -6,6 +6,21 @@ plugins {
     alias(libs.plugins.shadow)
 }
 
+// NeoForge for MC 26.2 runs on Java 25, and FML 11's jars are Java 25
+// bytecode (class file version 69); this module therefore compiles with a
+// Java 25 toolchain so javac can read the FML classes. The emitted bytecode
+// stays at release 21 (version 65) so the shadow plugin's ASM can remap it
+// and so the mod jar runs on any JVM >= 21. The common module classes
+// (already release 21) are shaded into this jar.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+}
+
 dependencies {
     api project(':common')
 
@@ -22,6 +37,17 @@ dependencies {
 // Per-loader artifact: AprismPrismate-v26.0-Alpha.1-N-26.2.jar
 shadowJar {
     archiveFileName = "AprismPrismate-${project.version}-N-${project.minecraftVersion}.jar"
+    // ${file.jarVersion} in neoforge.mods.toml resolves from the jar's
+    // Implementation-Version manifest attribute. FML validates it with the
+    // Maven version parser, so the family 'v' prefix is stripped here.
+    def manifestVersion = project.version.toString().replaceFirst('^v', '')
+    manifest {
+        attributes(
+            'Implementation-Title': 'AprismPrismate',
+            'Implementation-Version': manifestVersion,
+            'Implementation-Vendor': 'BlockConnect@StarsailsClover'
+        )
+    }
 
     // Relocation rule (docs 01 Section 9.1): the embedded Aprism manifest
     // runtime is relocated; com.aprism.api is NOT relocated so mod jars bind
@@ -34,6 +60,12 @@ shadowJar {
     exclude 'META-INF/*.DSA'
     exclude 'META-INF/*.RSA'
     exclude 'module-info.class'
+    // Prismate uses java.util.logging, not slf4j. The host loader provides
+    // slf4j on the classpath; bundling it causes LinkageError in the module
+    // layer (org.slf4j.Logger defined by both the app loader and the module
+    // classloader). Same for compile-only annotation jars.
+    exclude 'org/slf4j/**'
+    exclude 'com/google/errorprone/**'
 
     // Build-time check (docs 02 Section 6): com/aprism/api MUST remain
     // unrelocated in the shaded jar.
