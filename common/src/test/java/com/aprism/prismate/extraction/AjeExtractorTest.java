@@ -141,6 +141,35 @@ class AjeExtractorTest {
         }
 
         @Test
+        @DisplayName("surfaces the root icon.png when present (Alpha.7 metadata)")
+        void surfacesIconWhenPresent() throws Exception {
+            String manifest = TestFixtures.manifestJson("iconmod", "1.0.0", "*", null, null);
+            byte[] mainJar = TestFixtures.jarBytes(Map.of("Main.class", new byte[]{1}));
+            Map<String, byte[]> extra = new LinkedHashMap<>();
+            extra.put("icon.png", new byte[]{(byte) 0x89, 'P', 'N', 'G'});
+            TestFixtures.writeAje(tempDir.resolve("icon.aje"), manifest, "iconmod", mainJar, extra);
+
+            AjeExtractor.ExtractedPack pack = extractor.extract(discoverSingle(),
+                    tempDir.resolve("work"), failures);
+            assertThat(pack).isNotNull();
+            assertThat(pack.iconPath()).isNotNull();
+            assertThat(Files.isRegularFile(pack.iconPath())).isTrue();
+        }
+
+        @Test
+        @DisplayName("iconPath is null when the pack has no icon.png (Alpha.7 metadata)")
+        void iconNullWhenAbsent() throws Exception {
+            String manifest = TestFixtures.manifestJson("noiconmod", "1.0.0", "*", null, null);
+            byte[] mainJar = TestFixtures.jarBytes(Map.of("Main.class", new byte[]{1}));
+            TestFixtures.writeAje(tempDir.resolve("noicon.aje"), manifest, "noiconmod", mainJar, null);
+
+            AjeExtractor.ExtractedPack pack = extractor.extract(discoverSingle(),
+                    tempDir.resolve("work"), failures);
+            assertThat(pack).isNotNull();
+            assertThat(pack.iconPath()).isNull();
+        }
+
+        @Test
         @DisplayName("reports missing declared mixin configs as a warning path")
         void nullResourcesWhenAbsent() throws Exception {
             String manifest = TestFixtures.manifestJson("leanmod", "1.0.0", "*", null, null);

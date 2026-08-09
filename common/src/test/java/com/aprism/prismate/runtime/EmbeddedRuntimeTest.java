@@ -361,5 +361,51 @@ class EmbeddedRuntimeTest {
             assertThat(content).contains("reportmod");
             runtime.close();
         }
+
+        @Test
+        @DisplayName("surfaces the manifest displayName in the load report (Alpha.7)")
+        void reportSurfacesDisplayName() throws Exception {
+            // TestFixtures manifests set displayName = "<id> display"
+            writeMod("reportmod", "com.test.ReportMod", null);
+            EmbeddedRuntime runtime = EmbeddedRuntime.create(bridge, config);
+            runtime.boot();
+
+            String report = runtime.renderReport();
+            assertThat(report).contains("reportmod display");
+            runtime.close();
+        }
+
+        @Test
+        @DisplayName("skips first-run guidance when packs were discovered (Alpha.7)")
+        void firstRunGuidanceSkippedWhenPacksExist() throws Exception {
+            writeMod("reportmod", "com.test.ReportMod", null);
+            EmbeddedRuntime runtime = EmbeddedRuntime.create(bridge, config);
+            runtime.boot();
+
+            assertThat(runtime.writeFirstRunGuidanceIfEmpty()).isNull();
+            runtime.close();
+        }
+
+        @Test
+        @DisplayName("writes first-run guidance when no packs were discovered (Alpha.7)")
+        void firstRunGuidanceWhenEmpty() {
+            // Empty mods dir -> discoveredCount == 0 -> guidance file written
+            EmbeddedRuntime runtime = EmbeddedRuntime.create(bridge, config);
+            runtime.boot();
+
+            java.nio.file.Path guidance = runtime.writeFirstRunGuidanceIfEmpty();
+            assertThat(guidance).isNotNull();
+            assertThat(guidance.getFileName().toString()).isEqualTo("FIRST-RUN.txt");
+            try {
+                String content = java.nio.file.Files.readString(guidance);
+                assertThat(content).contains("first-run guidance");
+                assertThat(content).contains("mods");
+            } catch (java.io.IOException e) {
+                throw new AssertionError(e);
+            }
+            // Second call is a no-op (file already exists)
+            assertThat(runtime.writeFirstRunGuidanceIfEmpty()).isNull();
+            runtime.close();
+        }
     }
 }

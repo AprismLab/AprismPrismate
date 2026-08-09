@@ -142,6 +142,12 @@ public final class PrismateBootstrap {
         if (reportFile != null) {
             bridge.log("Prismate load report written to " + reportFile);
         }
+        // v26.0-Alpha.7 surface polish: on a first run with no .aje packs,
+        // write a one-time guidance file telling the user where to put mods.
+        Path guidanceFile = runtime.writeFirstRunGuidanceIfEmpty();
+        if (guidanceFile != null) {
+            bridge.log("Prismate first-run guidance written to " + guidanceFile);
+        }
     }
 
     /**

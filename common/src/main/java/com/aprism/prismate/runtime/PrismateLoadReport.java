@@ -19,7 +19,8 @@ import java.util.List;
 public final class PrismateLoadReport {
 
     /** A single processed pack with its outcome. */
-    public record Entry(String stage, String id, String version, Status status, long durationMs, String failure) {
+    public record Entry(String stage, String id, String displayName, String version,
+            Status status, long durationMs, String failure) {
         /** Load outcome. */
         public enum Status { OK, FAILED }
     }
@@ -28,7 +29,7 @@ public final class PrismateLoadReport {
     private final List<Entry> entries = new ArrayList<>();
 
     /**
-     * Records a successfully processed pack.
+     * Records a successfully processed pack (no display name).
      *
      * @param stage      the pipeline stage (discovery/extraction/lifecycle)
      * @param id         the mod id
@@ -36,11 +37,26 @@ public final class PrismateLoadReport {
      * @param durationMs the time taken, in milliseconds
      */
     public void recordOk(String stage, String id, String version, long durationMs) {
-        entries.add(new Entry(stage, id, version, Entry.Status.OK, durationMs, null));
+        recordOk(stage, id, null, version, durationMs);
     }
 
     /**
-     * Records an isolated pack failure.
+     * Records a successfully processed pack with its human-readable display
+     * name (v26.0-Alpha.7 metadata passthrough).
+     *
+     * @param stage       the pipeline stage (discovery/extraction/lifecycle)
+     * @param id          the mod id
+     * @param displayName the mod display name (may be {@code null})
+     * @param version     the mod version (may be {@code null})
+     * @param durationMs  the time taken, in milliseconds
+     */
+    public void recordOk(String stage, String id, String displayName, String version,
+            long durationMs) {
+        entries.add(new Entry(stage, id, displayName, version, Entry.Status.OK, durationMs, null));
+    }
+
+    /**
+     * Records an isolated pack failure (no display name).
      *
      * @param stage      the pipeline stage
      * @param id         the mod id (may be {@code null} when unknown)
@@ -49,7 +65,23 @@ public final class PrismateLoadReport {
      * @param failure    a short human-readable failure description
      */
     public void recordFailure(String stage, String id, String version, long durationMs, String failure) {
-        entries.add(new Entry(stage, id, version, Entry.Status.FAILED, durationMs, failure));
+        recordFailure(stage, id, null, version, durationMs, failure);
+    }
+
+    /**
+     * Records an isolated pack failure with its human-readable display name
+     * (v26.0-Alpha.7 metadata passthrough).
+     *
+     * @param stage       the pipeline stage
+     * @param id          the mod id (may be {@code null} when unknown)
+     * @param displayName the mod display name (may be {@code null})
+     * @param version     the mod version (may be {@code null})
+     * @param durationMs  the time spent before the failure, in milliseconds
+     * @param failure     a short human-readable failure description
+     */
+    public void recordFailure(String stage, String id, String displayName, String version,
+            long durationMs, String failure) {
+        entries.add(new Entry(stage, id, displayName, version, Entry.Status.FAILED, durationMs, failure));
     }
 
     /**
@@ -104,6 +136,11 @@ public final class PrismateLoadReport {
             sb.append("  [").append(e.status() == Entry.Status.OK ? "OK  " : "FAIL")
                     .append("] ").append(e.stage()).append(' ');
             sb.append(e.id() != null ? e.id() : "?");
+            // v26.0-Alpha.7 metadata passthrough: surface the human-readable
+            // display name when the manifest provided one.
+            if (e.displayName() != null && !e.displayName().isBlank()) {
+                sb.append(" (").append(e.displayName()).append(')');
+            }
             if (e.version() != null && !e.version().isBlank()) {
                 sb.append(' ').append(e.version());
             }

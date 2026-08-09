@@ -54,7 +54,8 @@ public final class AjeExtractor {
             List<Path> jars,
             Path resourcesDir,
             Path mixinsDir,
-            List<String> mixinConfigs) {
+            List<String> mixinConfigs,
+            Path iconPath) {
     }
 
     /**
@@ -181,8 +182,15 @@ public final class AjeExtractor {
                 }
             }
 
+            // The optional icon.png at the pack root was already copied into
+            // workDir by the generic extraction loop; surface its path so host
+            // bridges can pass display metadata (icon + displayName) through to
+            // the host loader's mod list where supported (v26.0-Alpha.7).
+            Path iconCandidate = workDir.resolve("icon.png");
+            Path iconPath = Files.isRegularFile(iconCandidate) ? iconCandidate : null;
+
             return new ExtractedPack(manifest, aje.path(), workDir, List.copyOf(jars),
-                    resourcesDir, mixinsDir, mixinConfigs);
+                    resourcesDir, mixinsDir, mixinConfigs, iconPath);
         } catch (IOException e) {
             fail(failures, modId, fileName, "extraction failed: " + e.getMessage(), t0);
             return null;

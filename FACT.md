@@ -427,3 +427,25 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
   `aprism` id (now identical to the upstream behavior) as the fallback for
   embedded Aprism cores that predate the fix.
 - [DONE] Version bumped to v26.0-Alpha.6.
+
+### Session 2026-08-09 (v26.0-Alpha.7-Phase0) - Surface and supply chain
+- [DONE] Mod metadata passthrough (v26.0-Alpha.7): the load report now
+  surfaces each pack's manifest displayName alongside its id (verified in the
+  real game: "examplemod (Example Mod) 1.0.0"); PrismateLoadReport.Entry
+  gained displayName with backward-compatible recordOk/recordFailure
+  overloads.
+- [DONE] Icon metadata: AjeExtractor.ExtractedPack now exposes iconPath (the
+  extracted root icon.png, or null) so host bridges can pass display metadata
+  to the host mod list where supported.
+- [DONE] First-run guidance: when no .aje packs are discovered, Prismate
+  writes a one-time <gameDir>/prismate/FIRST-RUN.txt telling the user where
+  to place mods, how to verify, and the agent mutual-exclusion rule.
+- [DONE] Supply chain verified in place: release.yml ships SHA-256 checksums,
+  cosign keyless signatures (.sig/.bundle), and a CycloneDX SBOM per tag —
+  confirmed against the Alpha.4/Alpha.5/Alpha.6 releases; shaded-jar
+  relocation layout re-verified (com/aprism/api present and unrelocated,
+  manifest + ASM relocated, no leaked com/aprism/manifest).
+- [DONE] Tests: 5 new (icon present/absent extraction, report displayName,
+  first-run guidance written/skipped). 77 tests green; real-Fabric smoke
+  PASS (lifecycle + mixin + resources + displayName in the in-game report).
+- [DONE] Version bumped to v26.0-Alpha.7.
