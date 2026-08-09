@@ -33,6 +33,15 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      # The neoforge module requires a Java 25 toolchain (FML 11 jars are
+      # Java 25 bytecode). Provide JDK 25 so Gradle's toolchain auto-detection
+      # resolves it; foojay-resolver-convention is the network fallback.
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
