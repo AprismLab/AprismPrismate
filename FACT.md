@@ -633,3 +633,44 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
   line, boot on every supported segment). Headless suite 79 main tests + 4
   consistency tests green; build successful.
 - [DONE] Version bumped to v26.1-Alpha.1; embedded Aprism pin -> v26.1.
+
+### Session 2026-08-10 (v26.1-Alpha.2-Phase0) - Fabric line expansion: real 1.21.x
+- [DONE] Real Minecraft 1.21.10 Fabric smoke environment
+  (tools/smoke/setup_fabric121_env.sh): downloads the genuine 1.21.10 client
+  jar + 85 Java libraries + LWJGL windows-x64 natives from Mojang piston and
+  the Fabric runtime deps for 1.21.10 (fabric-loader 0.19.3, sponge-mixin
+  0.17.3, intermediary, ASM 9.10.1) into build/smoke-fabric-121/ + committed
+  tools/smoke/deps-121/. Assets intentionally omitted (the lifecycle
+  assertions do not need them; the 26.2 smoke already proved an empty assets
+  dir boots). Two environment fixes landed during bring-up: Windows-native
+  python cannot open POSIX paths (added a cygpath wpath helper for every path
+  handed to python), and Fabric 0.19.3's LoaderUtil.verifyClasspath rejects
+  the vanilla ASM 9.6 jar next to Fabric's own ASM 9.10.1 (the classpath now
+  excludes the org.ow2.asm group; Fabric supplies ASM).
+- [DONE] Real 1.21.x Fabric harness (tools/smoke/run_fabric121_smoke.sh):
+  launches genuine MC 1.21.10 through Fabric Loader 0.19.3 KnotClient with
+  Prismate installed, asserting the full Aprism lifecycle
+  (PREINIT/INIT/SETUP/COMPLETE) + resource-dir injection inside the live
+  game. Version-agnostic sample packs only (examplemod lifecycle probe,
+  ressmoke resource probe); prismatemix is deliberately excluded because its
+  mixin targets net.minecraft.client.Minecraft, which is obfuscated on
+  1.21.x — that remap is the Aprism agent's job (Alpha.3 remap boundary).
+- [VERIFIED] SMOKE121 PASS: real Minecraft 1.21.10 + Fabric 0.19.3 boots with
+  Prismate; the sample .aje reaches the full lifecycle and resource injection
+  works. This is the first real landing on the 1.21 segment of the JE line.
+- [DONE] Opened the Fabric dependency range: fabric.mod.json minecraft
+  ">=26.2" -> ">=1.20" so Fabric accepts Prismate across the JE line
+  (java stays ">=21", matching the embedded Aprism API's bytecode baseline).
+- [DECISION] Bytecode floor scope refinement (replaces the roadmap's "lower
+  Fabric to release 17"): the embedded com.aprism.api in the shaded artifact
+  is Java 21 bytecode (upstream Aprism compiles at release 21; verified major
+  version 65 in the jar). Lowering Prismate's own code to release 17 would be
+  misleading — the artifact still cannot load the embedded API on a Java 17
+  JVM. The real 1.21.x exit (a Java 21 game) is satisfied by the release-21
+  artifact, so Prismate keeps release 21 for the 1.21 segment. A true
+  release-17 floor (for 1.20.x/Java 17) is gated on upstream Aprism lowering
+  its API baseline and is tracked as the Alpha.3 remap-boundary work.
+- [VERIFIED] 26.2 regression still green on the Alpha.2 artifact: Fabric
+  lifecycle+mixin+resources, NeoForge lifecycle+report, Fabric multi-mod soak
+  (boot baseline 12341 ms). Headless suite green.
+- [DONE] Version bumped to v26.1-Alpha.2.
