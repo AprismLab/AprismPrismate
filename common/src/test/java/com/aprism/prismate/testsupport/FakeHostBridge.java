@@ -19,6 +19,7 @@ public final class FakeHostBridge implements HostBridge {
     private final Path gameDir;
     private final boolean injectionWorks;
     private final EnvSide side;
+    private String mcVersion = "26.2";
     private final List<Path> injectedJars = new ArrayList<>();
     private final List<Path> injectedResourceDirs = new ArrayList<>();
     private final List<String> offeredMixinConfigs = new ArrayList<>();
@@ -52,7 +53,17 @@ public final class FakeHostBridge implements HostBridge {
 
     @Override
     public String minecraftVersion() {
-        return "26.2";
+        return mcVersion;
+    }
+
+    /**
+     * Overrides the reported Minecraft version (v26.1-Alpha.1 version-line
+     * gate tests need out-of-line versions).
+     *
+     * @param version the version string to report
+     */
+    public void setMinecraftVersion(String version) {
+        this.mcVersion = version;
     }
 
     @Override

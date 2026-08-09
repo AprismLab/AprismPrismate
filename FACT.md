@@ -165,6 +165,75 @@ list, final soak.
 **v26.0 official (bare number) — GitHub Release.**
 Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
 
+## 5b. Roadmap: v26.1-Alpha.1 -> v26.1 official (version-line expansion)
+
+> Same Alpha rules as Section 5. Context at planning time (2026-08-10): the
+> Aprism main project is at v26.1-Alpha.7 (334 tests) with a JE version-line
+> foundation (VersionLineRegistry: 1.20.x REMAPPED/Java 17, 1.21.x
+> REMAPPED/Java 21, 26.x NO_REMAP/Java 25) and an in-flight lower-level API
+> (lowlevel/ package, uncommitted upstream). Prismate therefore needs (a) the
+> version line opened from the 26.2 pin to JE 1.20..26.2 per loader, and
+> (b) an upstream-drift discipline because Aprism keeps moving under us.
+
+**v26.1-Alpha.1 — Version-line foundation + upstream sync discipline.**
+Bump to v26.1-Alpha.1; embedded Aprism core pin -> v26.1. PrismateVersionLine:
+a slim Prismate-owned JE line registry mirroring the segments of Aprism
+v26.1-Alpha.7's VersionLineRegistry, guarded by a composite-build consistency
+test against the upstream registry (drift alarm). Detected host MC version
+below the line -> named refusal. New tools/upstream/ drift check: fetches the
+Aprism sibling, lists commits newer than the recorded sync pin, rebuilds and
+re-tests Prismate. Exit: suite green + consistency test + drift check in place.
+
+**v26.1-Alpha.2 — Fabric line expansion: real 1.21.x.**
+Lower the Fabric artifact bytecode floor to Java 17 (release 17) so it can run
+on the whole JE line; open fabric.mod.json minecraft range to >=1.20 with the
+per-segment Java semantics documented; build a real 1.21.x Fabric smoke
+environment from the Fabric meta (client + libraries); verify the sample .aje
+full lifecycle on a real 1.21.x Fabric instance. Exit: real 1.21.x smoke green
++ 26.2 regression still green.
+
+**v26.1-Alpha.3 — Fabric legacy line: real 1.20.x + remap boundary.**
+Real 1.20.x Fabric smoke on a Java 17 runtime proving the release-17 floor.
+Document the Intermediary remap boundary: Prismate loads packs as-is; version
+remapping is the Aprism agent's job, and .aje packs declare their target
+version. Exit: real 1.20.x smoke green; boundary documented.
+
+**v26.1-Alpha.4 — NeoForge line decision + known-issue attempt.**
+NeoForge stays 26.x-only for the v26.1 line (the bridge is written against
+FML 11; NeoForge 1.20.2-1.21.x runs FML 2-4, a different API — named out of
+scope with rationale). Opportunistic: attempt the v26.0 known-issue closures
+(NeoForge Mixin passthrough / resource injection) if Aprism has landed a
+usable mechanism (e.g. the lowlevel hook API); otherwise record the deferral.
+Exit: scope decision recorded + attempt made or deferral documented.
+
+**v26.1-Alpha.5 — Multi-version regression matrix.**
+run_all_regression.sh grows a version matrix: Fabric 26.2 + Fabric 1.21.x +
+Fabric 1.20.x (if the environment is buildable) + NeoForge 26.2; per-version
+startup baselines; mixed-pack soak on each. Exit: matrix green.
+
+**v26.1-Alpha.6 — Upstream alignment pass.**
+Re-sync against Aprism HEAD; adapt to whatever API has landed since Alpha.1
+(lowlevel hooks, loaderext seam, remap changes); refresh the consistency test
+and the sync pin. Exit: aligned with Aprism HEAD of the day, suite green.
+
+**v26.1-Alpha.7 — Surface and supply chain (line-wide).**
+Docs pass for the version line (README EN/ZH, docs 01/02); artifact naming
+across the line; SBOM/checksum/signing re-verified; known-issues refresh.
+Exit: docs + supply chain green.
+
+**v26.1-Alpha.8 — Harness hardening + full-line soak.**
+Full matrix + mixed-modpack soak; failure-injection drill on each supported
+version (deliberately broken pack -> complete named report). Exit: all gates
+green.
+
+**v26.1-Alpha.9 — Release candidate.**
+API/config freeze for the v26.1 line (monotonic additions: PrismateVersionLine
+API, minecraft range semantics), docs Implemented, known-issues finalized,
+final soak.
+
+**v26.1 official (bare number) — GitHub Release.**
+Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
+
 ### Cross-cutting rules
 - Version bumps follow the Aprism scheme; Prismate stays on the same minor
   line as the embedded Aprism core.
@@ -525,3 +594,42 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
   Gradle auto-provisions JDK 25 from the Foojay Disco API on CI (local
   machines supply it via org.gradle.java.installations.paths). 77 tests green
   locally after both fixes. v26.0 tag re-pointed to the fixed commit.
+
+### Session 2026-08-10 (v26.1-Alpha.1-Phase0) - Version-line foundation + upstream sync discipline
+- [DONE] Researched the Aprism main project's v26.1 progress (at planning time
+  v26.1-Alpha.7, VersionLineRegistry: 1.20.x REMAPPED/Java 17, 1.21.x
+  REMAPPED/Java 21, 26.x NO_REMAP/Java 25; an in-flight lowlevel API package)
+  and drafted the v26.1 roadmap (FACT.md Section 5b): Alpha.1 version-line
+  foundation + upstream sync discipline; Alpha.2/3 Fabric 1.21.x/1.20.x real
+  landings; Alpha.4 NeoForge line decision; Alpha.5 multi-version regression
+  matrix; Alpha.6 upstream alignment pass; Alpha.7 surface/supply chain;
+  Alpha.8 harness hardening; Alpha.9 release candidate; v26.1 official.
+- [DONE] PrismateVersionLine (common/.../version/): Prismate-owned mirror of
+  the Aprism JE version line (segments 1.20/1.21/26 with profile, Java
+  baseline, mappings source; resolve/isWithinSupportedLine/supportedLine/
+  describeLine). Kept Prismate-owned rather than depending on loader-core at
+  runtime, per the embedded-runtime minimalism rule (docs 01 Section 9.1).
+- [DONE] Version-line boot gate: PrismateBootstrap.bootEarly() refuses with
+  BootOutcome.VERSION_UNSUPPORTED (new, monotonic addition) when the host
+  Minecraft version resolves to no segment; FakeHostBridge gained a settable
+  MC version for tests.
+- [DONE] Upstream drift discipline: gradle.properties records
+  embeddedAprismVersion=v26.1 and the new aprismSyncPin; new
+  tools/upstream/check_upstream_drift.sh compares the sibling Aprism HEAD
+  against the pin, lists new commits, re-runs the suite, and (with --sync)
+  bumps the pin once green. The consistency test lives in its OWN source set
+  (consistencyTest) because it needs the full Aprism loader-core on its
+  classpath while the main suite must NOT (loader-core on the main test
+  classpath makes AgentConflictDetector's system-classloader fallback
+  false-positive AGENT_CONFLICT).
+- [VERIFIED] Drift check caught a REAL upstream push during development: the
+  Aprism sibling moved from e432c1d (v26.1-Alpha.7) to a7c9b9c
+  (v26.1-Alpha.8, lowlevel API foundation - ClassRedefiner/MethodHookRegistry/
+  MethodHookTransformer). Prismate stayed green against it (lowlevel lives in
+  loader-core, which Prismate does not embed); the pin was synced to a7c9b9c.
+- [DONE] Tests: VersionLineConsistencyTest (4: line window, segment-by-segment
+  field match, resolve agreement across probes, isWithinSupportedLine
+  agreement) + PrismateBootstrapTest version-line cases (refusal below the
+  line, boot on every supported segment). Headless suite 79 main tests + 4
+  consistency tests green; build successful.
+- [DONE] Version bumped to v26.1-Alpha.1; embedded Aprism pin -> v26.1.

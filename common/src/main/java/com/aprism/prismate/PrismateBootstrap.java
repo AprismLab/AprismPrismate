@@ -6,6 +6,7 @@ import com.aprism.api.AprismPhase;
 import com.aprism.prismate.config.PrismateConfig;
 import com.aprism.prismate.host.HostBridge;
 import com.aprism.prismate.runtime.EmbeddedRuntime;
+import com.aprism.prismate.version.PrismateVersionLine;
 
 /**
  * The loader bridge entrypoint orchestrator (docs 01 Section 4.1). Each host
@@ -41,6 +42,8 @@ public final class PrismateBootstrap {
         AGENT_CONFLICT,
         /** Prismate is disabled via configuration. */
         DISABLED,
+        /** The host Minecraft version is outside Prismate's JE version line. */
+        VERSION_UNSUPPORTED,
         /** The pipeline itself crashed; no lifecycle dispatch will follow. */
         BOOT_FAILED
     }
@@ -78,6 +81,14 @@ public final class PrismateBootstrap {
         if (!config.isEnabled()) {
             bridge.log("AprismPrismate is disabled via configuration; no work will be done");
             bootOutcome = BootOutcome.DISABLED;
+            return bootOutcome;
+        }
+        if (PrismateVersionLine.resolve(bridge.minecraftVersion()).isEmpty()) {
+            bridge.log("AprismPrismate refuses to boot: host Minecraft "
+                    + bridge.minecraftVersion()
+                    + " is outside the supported JE version line ("
+                    + PrismateVersionLine.describeLine() + ")");
+            bootOutcome = BootOutcome.VERSION_UNSUPPORTED;
             return bootOutcome;
         }
         bridge.log("AprismPrismate " + PrismateVersion.prismateVersion()

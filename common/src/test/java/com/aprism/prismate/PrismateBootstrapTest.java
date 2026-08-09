@@ -100,4 +100,29 @@ class PrismateBootstrapTest {
         assertThat(bootstrap.getRuntime().getMods()).isEmpty();
         bootstrap.shutdown();
     }
+
+    @Test
+    @DisplayName("refuses to boot when the host version is below the JE line")
+    void refusesBelowVersionLine() {
+        bridge.setMinecraftVersion("1.19.4");
+        PrismateBootstrap bootstrap = new PrismateBootstrap(bridge);
+        PrismateBootstrap.BootOutcome outcome = bootstrap.bootEarly();
+        assertThat(outcome).isEqualTo(PrismateBootstrap.BootOutcome.VERSION_UNSUPPORTED);
+        assertThat(bridge.logLines()).anySatisfy(l ->
+                assertThat(l).contains("1.19.4").contains("version line"));
+        assertThat(bridge.injectedJars()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("boots on every supported segment of the JE line")
+    void bootsOnEverySupportedSegment() {
+        for (String version : new String[]{"1.20.4", "1.21.10", "26.2"}) {
+            bridge.setMinecraftVersion(version);
+            PrismateBootstrap bootstrap = new PrismateBootstrap(bridge);
+            PrismateBootstrap.BootOutcome outcome = bootstrap.bootEarly();
+            assertThat(outcome).as("boot on MC %s", version)
+                    .isEqualTo(PrismateBootstrap.BootOutcome.OK);
+            bootstrap.shutdown();
+        }
+    }
 }

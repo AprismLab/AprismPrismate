@@ -24,6 +24,48 @@ dependencies {
     testImplementation libs.bundles.testing
 }
 
+// ---------------------------------------------------------------------------
+// Version-line consistency source set (v26.1-Alpha.1).
+//
+// Prismate's mirror of the Aprism JE version line must stay in lockstep with
+// the upstream VersionLineRegistry. The consistency test needs the FULL
+// Aprism loader-core on its classpath to compare against, but the main test
+// suite must NOT: its AgentConflictDetector fallback probes the system
+// classloader for com.aprism.loader.AprismRuntime, and in production that
+// class is only ever present when the Aprism javaagent is attached (Prismate
+// never embeds loader-core). Keeping the two classpaths separate preserves
+// the detector's meaning in tests.
+// ---------------------------------------------------------------------------
+sourceSets {
+    consistencyTest {
+        java.srcDir 'src/consistencyTest/java'
+        compileClasspath += sourceSets.main.output + sourceSets.test.output
+        runtimeClasspath += sourceSets.main.output + sourceSets.test.output
+    }
+}
+
+configurations {
+    consistencyTestImplementation.extendsFrom testImplementation
+    consistencyTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+dependencies {
+    consistencyTestImplementation libs.aprism.loader.core
+}
+
+tasks.register('consistencyTest', Test) {
+    description = 'Verifies PrismateVersionLine stays in lockstep with the Aprism VersionLineRegistry'
+    group = 'verification'
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.consistencyTest.output.classesDirs
+    classpath = sourceSets.consistencyTest.runtimeClasspath
+    shouldRunAfter tasks.named('test')
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('consistencyTest')
+}
+
 // Generate prismate-build-info.properties so the runtime knows its own
 // version, the embedded Aprism version, and the host loader pins without
 // hardcoding them in source. Values are captured at configuration time so the
