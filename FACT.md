@@ -385,3 +385,26 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
   documented in the Alpha.7 known-issues pass.
 - [DONE] Version bumped to v26.0-Alpha.4 (gradle.properties, artifact-name
   comments). Full suite green + real-game smoke pass; committed and tagged.
+
+### Session 2026-08-09 (v26.0-Alpha.5-Phase0) - Forge scope gate + multi-mod soak
+- [DONE] Multi-mod soak harness (tools/smoke/soak/): three probe .aje packs
+  with real cross-pack dependencies — soakcore (no deps), soakapi (provides
+  the virtual id soak-api), soakconsumer (depends on soak-api >=1.0.0) — plus
+  a real-game harness that asserts all three reach the full lifecycle, that
+  the provider initializes BEFORE the consumer (provides-alias resolution +
+  dependency-resolved ordering), and that the load report shows Loaded 6 /
+  failed 0.
+- [VERIFIED] SOAK PASS in a real Minecraft 26.2 / Fabric 0.16.14 instance:
+  all three soak packs loaded and dispatched in dependency order; the
+  provides-alias resolved correctly; no failures.
+- [DONE] Startup performance baseline recorded: total boot = 17771 ms
+  (Prismate v26.0-Alpha.4, MC 26.2, Fabric, 3 soak packs; includes full
+  Minecraft boot). Baseline file: build/smoke-soak/boot_ms.txt.
+- [DECISION] DECISION-1 (Forge scope) RE-CONFIRMED: Forge (classic) remains
+  OUT of scope for the entire v26.0 Alpha line and defers to post-1.0.
+  Rationale: classic Forge is legacy/unmaintained, NeoForge is the forward
+  path, and both real-game landings (Fabric Alpha.2, NeoForge Alpha.3)
+  already cover the two modern loaders. The forge/ module stays a visible
+  stub that refuses to boot with a named error.
+- [DONE] Version bumped to v26.0-Alpha.5; embedded Aprism core aligned to the
+  v26.0 GA release (gradle.properties + libs.versions.toml).
