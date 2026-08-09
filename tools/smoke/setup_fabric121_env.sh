@@ -19,12 +19,20 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-ENV_DIR="$REPO_ROOT/build/smoke-fabric-121"
-DEPS_DIR="$REPO_ROOT/tools/smoke/deps-121"
-WORK="$ENV_DIR/work"
-PYTHON="${PYTHON:-python}"
 
-MC_VERSION="1.21.10"
+# Parameterized by Minecraft version (default 1.21.10). Per-version artifacts
+# live under major.minor-slugged dirs so several line segments can coexist
+# (the building block for the v26.1-Alpha.5 multi-version matrix). The slug is
+# major+minor (1.21.10 -> 121, 1.20.1 -> 120, 26.2 -> 262) to match the
+# committed layout (deps-121 / build/smoke-fabric-121 for the 1.21 segment).
+PYTHON="${PYTHON:-python}"
+MC_VERSION="${1:-1.21.10}"
+SLUG="$("$PYTHON" -c "import sys;p=sys.argv[1].split('.');print(p[0]+p[1])" "$MC_VERSION")"
+
+ENV_DIR="$REPO_ROOT/build/smoke-fabric-$SLUG"
+DEPS_DIR="$REPO_ROOT/tools/smoke/deps-$SLUG"
+WORK="$ENV_DIR/work"
+
 FABRIC_LOADER_VERSION="0.19.3"
 ASSET_INDEX_ID="27"
 

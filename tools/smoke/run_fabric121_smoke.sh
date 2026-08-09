@@ -23,19 +23,31 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-ENV_DIR="$REPO_ROOT/build/smoke-fabric-121"
 
-SMOKE_DIR="$REPO_ROOT/build/smoke-fabric-121-run"
+# Parameterized by Minecraft version (default 1.21.10). Mirrors the slugged
+# directory layout of setup_fabric121_env.sh so any JE line segment can be
+# smoke-tested with the same harness (v26.1-Alpha.5 multi-version matrix).
+# Slug is major+minor (1.21.10 -> 121, 1.20.1 -> 120) matching setup layout.
+PYTHON="${PYTHON:-python}"
+MCVER="${1:-1.21.10}"
+SLUG="$("$PYTHON" -c "import sys;p=sys.argv[1].split('.');print(p[0]+p[1])" "$MCVER" 2>/dev/null || printf '%s' "$MCVER" | tr -d '.')"
+ENV_DIR="$REPO_ROOT/build/smoke-fabric-$SLUG"
+
+SMOKE_DIR="$REPO_ROOT/build/smoke-fabric-$SLUG-run"
 GAMEDIR="$SMOKE_DIR/gamedir"
 LOG="$SMOKE_DIR/smoke.log"
-MARKER="PRISMATE_FABRIC121_SMOKE"
-
-MCVER="1.21.10"
-ASSET_INDEX="27"
+MARKER="PRISMATE_FABRIC${SLUG}_SMOKE"
 
 wpath() {
     if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s' "$1"; fi
 }
+
+VJSON="$ENV_DIR/work/$MCVER.json"
+[ -s "$VJSON" ] || { echo "FAIL: $VJSON missing; run setup_fabric121_env.sh $MCVER first" >&2; exit 1; }
+# Asset index id differs per version (1.20.1 = 9, 1.21.10 = 27); read it from
+# the downloaded version manifest rather than hardcoding.
+ASSET_INDEX="$("$PYTHON" -c "import json;print(json.load(open('$(wpath "$VJSON")',encoding='utf-8')).get('assets',''))")"
+[ -n "$ASSET_INDEX" ] || ASSET_INDEX="legacy"
 
 VERSION="$(sed -n 's/^prismateVersion = //p' "$REPO_ROOT/gradle.properties" | tr -d '\r')"
 [ -n "$VERSION" ] || { echo "FAIL: could not read prismateVersion" >&2; exit 1; }
@@ -69,8 +81,8 @@ EXAMPLE_AJE="$REPO_ROOT/../Aprism/build/smoke/gamedir/mods/examplemod-1.0.0.aje"
 RESSMOKE_AJE="$REPO_ROOT/build/smoke-packs/ressmoke.aje"
 [ -f "$RESSMOKE_AJE" ] || fail "ressmoke.aje missing (run build_smoke_packs.py)"
 
-# Fabric runtime deps for 1.21.10 (committed under tools/smoke/deps-121)
-DEPS="$REPO_ROOT/tools/smoke/deps-121"
+# Fabric runtime deps for this version (committed under tools/smoke/deps-<slug>)
+DEPS="$REPO_ROOT/tools/smoke/deps-$SLUG"
 FABRIC_CP=""
 for j in "$DEPS"/*.jar; do
   FABRIC_CP="${FABRIC_CP:+$FABRIC_CP;}$(wpath "$j")"

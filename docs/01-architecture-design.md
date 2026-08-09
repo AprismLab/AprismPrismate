@@ -312,8 +312,9 @@ were resolved against the pinned loader versions with real-game verification
 | M4 | Forge entrypoint (if in scope) | sample loads on Forge | Deferred post-1.0 (DECISION-1 re-confirmed at v26.0-Alpha.5); visible stub refuses to boot |
 | M5 | Mutual-exclusion guard + error reporting polish | agent-present case refuses cleanly; malformed packs report clearly | v26.0-Alpha.1 (guard) / v26.0-Alpha.4 (report files) / v26.0-Alpha.6 (upstream alignment) |
 | M6 | Signing + release pipeline (mirror Aprism/Refract) | cosign-signed Pre-Release artifacts published | v26.0-Alpha.1 (pipelines) / verified in place at v26.0-Alpha.7 |
+| M7 | JE version-line expansion 1.20..26.2 + upstream sync discipline | PrismateVersionLine + boot gate + drift check; real Fabric landings on the 1.20 and 1.21 segments | v26.1-Alpha.1 (foundation/sync) / v26.1-Alpha.2 (real 1.21.x) / v26.1-Alpha.3 (real 1.20.x + remap boundary) |
 
-## 13. Known Issues (v26.0 release candidate)
+## 13. Known Issues (v26.1 line)
 
 1. **NeoForge host Mixin passthrough**: `.aje` mixin configs cannot be
    registered with NeoForge's already-initialized Mixin environment
@@ -330,8 +331,26 @@ were resolved against the pinned loader versions with real-game verification
    own injection succeeds, host-loaded mod classes rely on the host's own
    widener mechanism (Fabric applies `fabric.mod.json` accessWidener for mods
    it discovered itself). Recorded at v26.0-Alpha.4 per docs §3.3.
-5. **MC target pinned to 26.2**: the v26.0 line targets Minecraft 26.2 only
-   (unobfuscated, no remap); other MC versions follow the Aprism priority
-   targets in later minors.
+5. **Intermediary remap boundary (1.20/1.21 segments)**: Prismate loads `.aje`
+   packs as-is; it does NOT remap obfuscated classes. On the REMAPPED JE
+   segments (1.20.x / 1.21.x, obfuscated) a pack's compiled classes must
+   already match the running game, and Intermediary remapping remains the
+   Aprism agent's job (mirrors Aprism's VersionLineRegistry REMAPPED
+   profile). Real-game landings on 1.20.1 and 1.21.10 use version-agnostic
+   sample packs (Aprism API + classloader only); a Mixin targeting
+   `net.minecraft.client.Minecraft` is deliberately excluded there because
+   that class is obfuscated.
+6. **Java runtime floor = 21 (not the 1.20/1.21 official Java 17)**: the
+   embedded `com.aprism.api` in the shaded artifact is Java 21 bytecode
+   (upstream Aprism compiles at `--release 21`). Empirically verified
+   (v26.1-Alpha.3): a release-17 probe class loads on JRE 17, but loading
+   `com.aprism.api.AprismPhase` from the Prismate jar throws
+   `UnsupportedClassVersionError: class file version 65.0, this version only
+   recognizes up to 61.0`. Consequences: (a) fabric.mod.json keeps
+   `java: ">=21"` so Fabric never installs Prismate into a Java-17 profile
+   where the embedded API could not load; (b) 1.20.x / 1.21.x real-game
+   landings run under a Java 21 runtime (MC 1.20+ is forward-compatible with
+   newer JVMs); (c) a true Java-17 floor for the legacy segment is gated on
+   upstream Aprism lowering its API baseline.
 
 End of document.

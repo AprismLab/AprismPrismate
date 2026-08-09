@@ -674,3 +674,46 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
   lifecycle+mixin+resources, NeoForge lifecycle+report, Fabric multi-mod soak
   (boot baseline 12341 ms). Headless suite green.
 - [DONE] Version bumped to v26.1-Alpha.2.
+
+### Session 2026-08-10 (v26.1-Alpha.3-Phase0) - Fabric legacy line: real 1.20.x + remap boundary
+- [DONE] Generalized the real-Fabric tooling into a version-parameterized pair
+  (setup_fabric121_env.sh [version] + run_fabric121_smoke.sh [version]):
+  per-version dirs are slugged by major+minor (1.21.10 -> 121, 1.20.1 -> 120)
+  matching the committed deps-121/build/smoke-fabric-121 layout; the asset
+  index id is read from each version's own manifest (1.20.1 = 9, 1.21.10 = 27)
+  instead of hardcoded. This is the building block for the Alpha.5
+  multi-version regression matrix.
+- [DONE] Real Minecraft 1.20.1 Fabric smoke environment (build/smoke-fabric-120):
+  genuine 1.20.1 client jar + 64 Java libraries + LWJGL windows-x64 natives
+  from Mojang piston + Fabric 0.19.3 runtime deps (committed under
+  tools/smoke/deps-120, 4.3 MB).
+- [VERIFIED] SMOKE121 PASS on MC 1.20.1: real Minecraft 1.20.1 + Fabric 0.19.3
+  boots with Prismate; the version-agnostic sample .aje reaches the full
+  lifecycle (PREINIT/INIT/SETUP/COMPLETE) and resource injection works on the
+  1.20 segment. (Run under JDK 21: MC 1.20+ is forward-compatible with newer
+  JVMs; see the Java-floor evidence below.)
+- [VERIFIED] Java runtime floor empirically captured: a release-17 probe
+  class loads on JRE 17.0.19, but loading com.aprism.api.AprismPhase from the
+  Prismate shaded jar throws UnsupportedClassVersionError: class file version
+  65.0, this version only recognizes up to 61.0. The embedded Aprism API is
+  Java 21 bytecode, so the shaded artifact's effective runtime floor is Java
+  21 regardless of Prismate's own bytecode target. fabric.mod.json therefore
+  keeps java: ">=21" (Fabric will never install Prismate into a Java-17
+  profile). A true Java-17 floor for the legacy segment is gated on upstream
+  Aprism lowering its API baseline.
+- [DONE] Remap boundary documented: docs 01 §13 rewritten for the v26.1 line —
+  issue 5 now records the Intermediary remap boundary (Prismate loads packs
+  as-is; remapping obfuscated 1.20/1.21 classes is the Aprism agent's job,
+  mirroring Aprism's VersionLineRegistry REMAPPED profile); issue 6 records
+  the Java-21 runtime floor with the empirical evidence above. The obsolete
+  "MC pinned to 26.2" issue was replaced. Milestone M7 (version-line
+  expansion) added to docs 01 §12.
+- [FIXED] Alpha.3 regression initially reported the NeoForge harness FAIL:
+  the NeoForge shadowJar had not been rebuilt for the new version (only the
+  v26.1-Alpha.1-N jar existed). Rebuilt :neoforge:shadowJar and the harness
+  passed; lesson recorded: every version bump must rebuild BOTH loader jars
+  before running run_all_regression.sh.
+- [VERIFIED] REGRESSION PASS on v26.1-Alpha.3: Fabric lifecycle+mixin+
+  resources, NeoForge lifecycle+report, Fabric multi-mod soak all green; plus
+  the 1.20.1 and 1.21.10 real-game smokes on the Alpha.3 artifact.
+- [DONE] Version bumped to v26.1-Alpha.3.
