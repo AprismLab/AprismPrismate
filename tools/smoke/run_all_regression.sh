@@ -59,6 +59,15 @@ run_harness "Fabric 1.21.10 lifecycle+resources" \
 run_harness "Fabric 1.20.1 lifecycle+resources" \
     with_java "$JAVA21_HOME" "$SCRIPT_DIR/run_fabric121_smoke.sh" 1.20.1
 
+# --- Failure-injection drill (v26.1-Alpha.8): on each Fabric line segment,
+# launch with 1 deliberately-broken pack + 1 healthy pack and assert the
+# broken pack is isolated and named in the report while the healthy pack
+# still completes its lifecycle. ---
+run_harness "Fabric 1.21.10 fault-injection drill" \
+    with_java "$JAVA21_HOME" "$SCRIPT_DIR/run_fault_drill.sh" 1.21.10
+run_harness "Fabric 1.20.1 fault-injection drill" \
+    with_java "$JAVA21_HOME" "$SCRIPT_DIR/run_fault_drill.sh" 1.20.1
+
 # --- MC 26.2 trio (original v26.0 gate) ---
 run_harness "Fabric 26.2 lifecycle+mixin+resources" \
     with_java "${PRISMATE_JAVA_HOME:-${JAVA_HOME:-}}" "$SCRIPT_DIR/run_fabric_smoke.sh"

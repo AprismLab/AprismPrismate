@@ -124,34 +124,67 @@ mkdir -p "$SMOKE_DIR"
   echo "0"
 } > "$ARGS"
 
-rm -f "$LOG"
 echo "Smoke121: launching real Minecraft $MCVER through Fabric Loader with Prismate..."
-# Wall-clock startup baseline for this line segment (v26.1-Alpha.5): time from
-# JVM launch until the COMPLETE-phase marker appears. Coarse (poll granularity)
-# but comparable across segments.
-T_START_MS=$(($(date +%s) * 1000))
-"$JAVA_BIN" "@$ARGS" > "$LOG" 2>&1 &
-GAME_PID=$!
 
-# Poll for the COMPLETE-phase marker: [ExampleMod] onComplete is dispatched in
-# the Aprism COMPLETE phase, which on Fabric fires from the late GAME_READY
-# hook, so its presence proves the whole early + side + complete pipeline ran.
+# Launch + poll, with ONE retry guarded by log emptiness (v26.1-Alpha.8
+# harness hardening). Two distinct failure shapes exist on Windows and must
+# not be conflated:
+#   (a) the JVM died before writing anything -> the log stays 0 bytes. This is
+#       a LAUNCH failure (previous instance's file handles / AV scan still
+#       settling) and is retried once after a short wait.
+#   (b) the game started (log has content) but the COMPLETE-phase marker never
+#       appeared within the timeout -> a REAL pipeline failure, reported
+#       immediately without retry.
+# The startup baseline is measured on the SUCCESSFUL attempt only.
 TIMEOUT_SECS="${PRISMATE_SMOKE_TIMEOUT:-240}"
 FOUND=0
-for _ in $(seq 1 "$TIMEOUT_SECS"); do
-  sleep 1
-  if grep -q "\[ExampleMod\] onComplete" "$LOG" 2>/dev/null; then
-    FOUND=1
+ATTEMPT=0
+MAX_ATTEMPTS=2
+BOOT_MS=0
+while [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; do
+  ATTEMPT=$((ATTEMPT + 1))
+  rm -f "$LOG"
+  # Wall-clock startup baseline for this line segment (v26.1-Alpha.5): time
+  # from JVM launch until the COMPLETE-phase marker appears. Coarse (poll
+  # granularity) but comparable across segments.
+  T_START_MS=$(($(date +%s) * 1000))
+  "$JAVA_BIN" "@$ARGS" > "$LOG" 2>&1 &
+  GAME_PID=$!
+
+  # Poll for the COMPLETE-phase marker: [ExampleMod] onComplete is dispatched
+  # in the Aprism COMPLETE phase, which on Fabric fires from the late
+  # GAME_READY hook, so its presence proves the whole early + side + complete
+  # pipeline ran.
+  FOUND=0
+  for _ in $(seq 1 "$TIMEOUT_SECS"); do
+    sleep 1
+    if grep -q "\[ExampleMod\] onComplete" "$LOG" 2>/dev/null; then
+      FOUND=1
+      break
+    fi
+  done
+  T_END_MS=$(($(date +%s) * 1000))
+
+  if command -v pkill >/dev/null 2>&1; then
+    pkill -f "$MARKER" >/dev/null 2>&1 || true
+  else
+    kill "$GAME_PID" >/dev/null 2>&1 || true
+  fi
+
+  if [ "$FOUND" -eq 1 ]; then
+    BOOT_MS=$((T_END_MS - T_START_MS))
     break
   fi
-done
-T_END_MS=$(($(date +%s) * 1000))
 
-if command -v pkill >/dev/null 2>&1; then
-  pkill -f "$MARKER" >/dev/null 2>&1 || true
-else
-  kill "$GAME_PID" >/dev/null 2>&1 || true
-fi
+  # Log empty => launch failure (a). Retry once after letting the OS settle.
+  if [ ! -s "$LOG" ] && [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; then
+    echo "Smoke121: JVM produced no output (launch failure); retrying once after a settle..." >&2
+    sleep 8
+    continue
+  fi
+  # Non-empty log without the marker => real failure (b); do not retry.
+  break
+done
 
 if [ "$FOUND" -ne 1 ]; then
   echo "--- last 50 log lines ---" >&2

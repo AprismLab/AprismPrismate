@@ -114,6 +114,29 @@ def main():
     write_aje(outdir / "prismatemix.aje", prismatemix_manifest, "prismatemix",
               prismatemix_jar, {f"mixins/{mixin_config_name}": mixin_config.encode()})
 
+    # --- faultsmoke.aje (v26.1-Alpha.8 fault-injection drill) ---
+    # Its entrypoint throws in onInitialize; the harness asserts Prismate
+    # records a named lifecycle failure for THIS pack while the healthy pack
+    # next to it still completes its lifecycle (per-mod isolation, live game).
+    faultsmoke_manifest = {
+        "schemaVersion": 1,
+        "id": "faultsmoke",
+        "version": "1.0.0",
+        "displayName": "Prismate Fault Injection",
+        "description": "Fault-injection pack: entrypoint throws on purpose.",
+        "environment": "*",
+        "entrypoints": {"main": ["com.example.faultsmoke.ThrowingProbe"]},
+        "mixins": [],
+        "depends": {},
+        "platforms": {},
+        "accessWidener": None,
+        "provides": [],
+        "custom": {},
+    }
+    faultsmoke_jar = jar_from_classes(classes, ("com/example/faultsmoke/",))
+    write_aje(outdir / "faultsmoke.aje", faultsmoke_manifest, "faultsmoke",
+              faultsmoke_jar, {})
+
     return 0
 
 

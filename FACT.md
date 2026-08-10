@@ -824,3 +824,40 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
 - [DONE] Artifact naming across the line confirmed:
   AprismPrismate-v26.1-Alpha.7-Fa-26.2.jar and -N-26.2.jar rebuilt.
 - [DONE] Version bumped to v26.1-Alpha.7.
+
+### Session 2026-08-10 (v26.1-Alpha.8-Phase0) - Harness hardening + full-line soak + fault injection
+- [DONE] Fault-injection drill added: tools/smoke/run_fault_drill.sh launches a
+  genuine Minecraft instance (parameterized per JE line segment, default
+  1.21.10) through Fabric Loader with Prismate + TWO packs — examplemod
+  (healthy) and faultsmoke (its IAprismMod.onInitialize throws on purpose via
+  the new tools/smoke/ThrowingProbe.java probe, compiled into the probe
+  classes). build_smoke_packs.py now emits faultsmoke.aje. In the live game
+  the drill asserts (a) the healthy pack still reaches the full lifecycle
+  (per-mod failure isolation holds), (b) the Load Report names the failing
+  pack and carries the reason ("[lifecycle] faultsmoke ... intentional
+  fault-injection failure", counter "failed 1"), and (c) load-report.txt is
+  written and names faultsmoke. This is the real-game half of Alpha.8's
+  "deliberately broken pack -> complete, actionable report" acceptance (the
+  headless half already lives in EmbeddedRuntimeTest).
+- [DONE] run_all_regression.sh grew the fault drill for BOTH Fabric line
+  segments (1.21.10 and 1.20.1), so the unified gate now covers 7 real-game
+  harnesses: 1.21.10 lifecycle+resources, 1.20.1 lifecycle+resources,
+  1.21.10 fault drill, 1.20.1 fault drill, 26.2 Fabric lifecycle+mixin+
+  resources, 26.2 NeoForge lifecycle+report, 26.2 Fabric multi-mod soak.
+- [DONE] Harness hardening (the flaky 1.20.1 drill): two distinct failure
+  shapes on Windows were conflated before. run_fault_drill.sh and
+  run_fabric121_smoke.sh now distinguish them: (a) the JVM died before writing
+  anything -> the log stays 0 bytes -> LAUNCH failure (previous instance's
+  file handles / AV scan still settling), retried once after an 8s settle;
+  (b) the game started (log has content) but the marker never appeared within
+  the timeout -> REAL failure, reported immediately without retry. A 3s
+  post-pkill settle was also added before pre-flight. The startup baseline is
+  measured on the successful attempt only.
+- [VERIFIED] Full regression matrix GREEN (7/7) on v26.1-Alpha.8: both Fabric
+  line segments, both fault drills, and the 26.2 trio. The previously flaky
+  1.20.1 fault drill now passes deterministically. Per-segment boot baselines:
+  1.20.1 = 20000 ms, 1.21.10 = 22000 ms; 26.2 multi-mod soak boot baseline =
+  11440 ms.
+- [DONE] Both loader artifacts rebuilt for the version:
+  AprismPrismate-v26.1-Alpha.8-Fa-26.2.jar and -N-26.2.jar.
+- [DONE] Version bumped to v26.1-Alpha.8.
