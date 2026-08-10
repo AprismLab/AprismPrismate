@@ -69,6 +69,17 @@ with it in one instance (docs 01 §9.2).
   artifact naming. Additions are allowed only under the monotonic-increment
   contract (never remove/rename); deprecation with notice only. No new
   behavior lands in v26.0 after this freeze; fixes go to v26.0 official only.
+- **DECISION-5 (API/config freeze, v26.1-Alpha.9):** the public surface is
+  FROZEN for the v26.1 line, carrying every DECISION-4 guarantee plus the new
+  v26.1 surface, all additive under the same monotonic-increment contract:
+  (a) the `PrismateVersionLine` registry and its segment contract
+  (1.20 REMAPPED/Java17, 1.21 REMAPPED/Java21, 26 NO_REMAP/Java25) and the
+  version-line boot gate (`BootOutcome.VERSION_UNSUPPORTED`); (b) the
+  `fabric.mod.json` minecraft range semantics (`>=1.20`, `java >=21`);
+  (c) the classloader-level resource injection on NeoForge
+  (`PrismateModClassLoader.addResourceDir`); (d) the per-loader artifact
+  naming across the JE line. No new behavior lands in v26.1 after this
+  freeze; fixes go to v26.1 official only.
 
 ### Open items (tracked to resolution)
 
@@ -861,3 +872,25 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
 - [DONE] Both loader artifacts rebuilt for the version:
   AprismPrismate-v26.1-Alpha.8-Fa-26.2.jar and -N-26.2.jar.
 - [DONE] Version bumped to v26.1-Alpha.8.
+
+### Session 2026-08-10 (v26.1-Alpha.9-Phase0) - Release candidate
+- [DONE] DECISION-5 recorded (Section 4): the v26.1 public surface is FROZEN,
+  carrying every DECISION-4 guarantee plus the additive v26.1 surface —
+  PrismateVersionLine registry + segment contract + version-line boot gate
+  (VERSION_UNSUPPORTED), fabric.mod.json minecraft range semantics
+  (>=1.20 / java >=21), classloader-level resource injection on NeoForge, and
+  per-loader artifact naming across the JE line — all under the
+  monotonic-increment contract. No new behavior lands after this freeze;
+  fixes go to v26.1 official only.
+- [DONE] docs 01/02 headers bumped to v26.1-Alpha.9, Status: Implemented
+  (release candidate). Known issues (docs 01 §13, 7 items) finalized for the
+  line: NeoForge Mixin passthrough, NeoForge host resource-manager, Forge
+  stub, widener boundary, NeoForge 26.x-only decision, Intermediary remap
+  boundary, Java-21 runtime floor.
+- [VERIFIED] Final soak / full regression matrix GREEN (7/7) on
+  v26.1-Alpha.9. Per-segment boot baselines: 1.20.1 = 20000 ms,
+  1.21.10 = 26000 ms; 26.2 multi-mod soak boot baseline = 12370 ms. Headless
+  suite + consistency suite green.
+- [DONE] Both loader artifacts rebuilt for the version:
+  AprismPrismate-v26.1-Alpha.9-Fa-26.2.jar and -N-26.2.jar.
+- [DONE] Version bumped to v26.1-Alpha.9.
