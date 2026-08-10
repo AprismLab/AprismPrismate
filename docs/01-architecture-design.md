@@ -1,7 +1,7 @@
 # AprismPrismate Architecture Design
 
 > Document 1 of 2 | AprismPrismate Documentation Set
-> Version: v26.1-Alpha.9 | Status: Implemented (release candidate)
+> Version: v26.1 | Status: Implemented (official)
 > Author: BlockConnect@StarsailsClover
 > Canonical language: English (Chinese summary in README.zh-CN.md)
 

@@ -894,3 +894,20 @@ Signed official release collapsing Alpha.1-9; finalized docs; known-issues.
 - [DONE] Both loader artifacts rebuilt for the version:
   AprismPrismate-v26.1-Alpha.9-Fa-26.2.jar and -N-26.2.jar.
 - [DONE] Version bumped to v26.1-Alpha.9.
+
+### Session 2026-08-10 (v26.1-Phase0) - v26.1 official (bare number)
+- [DONE] Official release collapsing Alpha.1-9 of the v26.1 line. The bare
+  number (v26.1) is the minor official per the Aprism scheme; it publishes as
+  a GitHub Release (isPrerelease=false), distinct from the Alpha Pre-Releases.
+- [VERIFIED] Official gate regression matrix GREEN (7/7) on v26.1 (bare):
+  Fabric 1.21.10 lifecycle+resources, Fabric 1.20.1 lifecycle+resources,
+  both fault-injection drills, 26.2 Fabric lifecycle+mixin+resources, 26.2
+  NeoForge lifecycle+report, 26.2 Fabric multi-mod soak. Per-segment boot
+  baselines: 1.20.1 = 18000 ms, 1.21.10 = 23000 ms; 26.2 multi-mod soak boot
+  baseline = 11691 ms. Headless + consistency suites green.
+- [DONE] docs 01/02 headers bumped to v26.1, Status: Implemented (official).
+  Known issues (docs 01 §13, 7 items) and the DECISION-5 freeze carry over
+  from the Alpha.9 candidate unchanged.
+- [DONE] Both loader artifacts rebuilt for the official version:
+  AprismPrismate-v26.1-Fa-26.2.jar and -N-26.2.jar.
+- [DONE] Version bumped to v26.1 (bare = minor official).
