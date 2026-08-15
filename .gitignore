@@ -46,3 +46,15 @@ local.properties
 dumps/
 crash-reports/
 logs/
+
+# Smoke test binary dependencies (resolved at setup time, not distributed)
+tools/smoke/deps/
+tools/smoke/deps-*/
+tools/smoke/neoforge-cache/
+
+# Session archives (local only, not distributed)
+.qwen-agent-sessions/
+.cherry_migration/
+
+# Project tracking (local only, not distributed)
+FACT.md
