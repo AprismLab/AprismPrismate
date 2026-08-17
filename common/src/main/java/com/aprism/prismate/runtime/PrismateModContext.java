@@ -6,11 +6,13 @@ import com.aprism.api.AprismContext;
 import com.aprism.api.AprismEventBus;
 import com.aprism.api.AprismRegistry;
 import com.aprism.api.ModContainer;
+import com.aprism.api.imc.InterModComms;
 
 /**
  * Mod-scoped {@link AprismContext} implementation. Each loaded mod receives
  * its own context bound to its container, the shared event bus and registry,
- * and a logger named after the mod id (mirrors Aprism's context semantics).
+ * a logger named after the mod id, and the shared inter-mod communication
+ * surface (mirrors Aprism's context semantics).
  *
  * @author BlockConnect@StarsailsClover
  */
@@ -20,16 +22,20 @@ public final class PrismateModContext implements AprismContext {
     private final AprismEventBus eventBus;
     private final AprismRegistry registry;
     private final Logger logger;
+    private final InterModComms interModComms;
 
     /**
-     * @param mod       the owning mod container
-     * @param eventBus  the shared event bus
-     * @param registry  the shared registry
+     * @param mod           the owning mod container
+     * @param eventBus      the shared event bus
+     * @param registry      the shared registry
+     * @param interModComms the shared inter-mod communication surface
      */
-    public PrismateModContext(ModContainer mod, AprismEventBus eventBus, AprismRegistry registry) {
+    public PrismateModContext(ModContainer mod, AprismEventBus eventBus, AprismRegistry registry,
+                               InterModComms interModComms) {
         this.mod = mod;
         this.eventBus = eventBus;
         this.registry = registry;
+        this.interModComms = interModComms;
         this.logger = Logger.getLogger("prismate." + mod.getId());
     }
 
@@ -51,5 +57,10 @@ public final class PrismateModContext implements AprismContext {
     @Override
     public Logger getLogger() {
         return logger;
+    }
+
+    @Override
+    public InterModComms getInterModComms() {
+        return interModComms;
     }
 }

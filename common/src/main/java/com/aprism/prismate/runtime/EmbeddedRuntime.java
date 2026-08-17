@@ -46,6 +46,7 @@ public final class EmbeddedRuntime {
     private final PrismateEventBus eventBus = new PrismateEventBus();
     private final PrismateRegistry registry = new PrismateRegistry();
     private final PrismateLoadReport report = new PrismateLoadReport();
+    private final PrismateInterModComms interModComms = new PrismateInterModComms();
     private final List<LoadFailure> failures = new ArrayList<>();
 
     private final Map<String, PrismateModContainer> mods = new LinkedHashMap<>();
@@ -442,6 +443,9 @@ public final class EmbeddedRuntime {
      * @param phase the phase to dispatch
      */
     public void dispatchPhase(AprismPhase phase) {
+        if (phase == AprismPhase.INIT) {
+            interModComms.markInitPhaseReached();
+        }
         String entrypointKey = LifecycleMapper.entrypointKeyFor(phase);
         for (PrismateModContainer container : new ArrayList<>(mods.values())) {
             AprismManifest manifest = container.getManifest();
@@ -452,7 +456,7 @@ public final class EmbeddedRuntime {
             if (classNames.isEmpty()) {
                 continue;
             }
-            PrismateModContext context = new PrismateModContext(container, eventBus, registry);
+            PrismateModContext context = new PrismateModContext(container, eventBus, registry, interModComms);
             ClassLoader loader = classLoaderForPacks();
             for (String className : classNames) {
                 try {
@@ -616,6 +620,7 @@ public final class EmbeddedRuntime {
      * Closes the fallback classloader, if one was created.
      */
     public void close() {
+        interModComms.clear();
         if (fallbackLoader != null) {
             try {
                 fallbackLoader.close();
@@ -654,6 +659,13 @@ public final class EmbeddedRuntime {
      */
     public PrismateRegistry getRegistry() {
         return registry;
+    }
+
+    /**
+     * @return the shared inter-mod communication surface
+     */
+    public PrismateInterModComms getInterModComms() {
+        return interModComms;
     }
 
     /**

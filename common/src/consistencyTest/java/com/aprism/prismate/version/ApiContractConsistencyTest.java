@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import com.aprism.api.AprismContext;
 import com.aprism.api.AprismPhase;
+import com.aprism.api.EventPriority;
 import com.aprism.api.IAprismMod;
 import com.aprism.api.ModContainer;
 import com.aprism.manifest.AprismManifest;
@@ -63,6 +64,30 @@ class ApiContractConsistencyTest {
             assertThat(m.getParameterCount()).as(hook).isEqualTo(1);
             assertThat(m.getReturnType()).as(hook + " returns void").isEqualTo(void.class);
         }
+    }
+
+    @Test
+    @DisplayName("AprismContext exposes the getters Prismate implements")
+    void aprismContextGetterSetIsStable() throws Exception {
+        Class<?> iface = AprismContext.class;
+        assertThat(iface.isInterface()).isTrue();
+        for (String getter : List.of(
+                "getMod", "getEventBus", "getRegistry", "getLogger", "getInterModComms")) {
+            assertThat(iface.getMethod(getter))
+                    .as(getter + " present").isNotNull();
+        }
+    }
+
+    @Test
+    @DisplayName("EventPriority constants are in HIGHEST..LOWEST order")
+    void eventPriorityOrderIsStable() {
+        assertThat(EventPriority.values())
+                .containsExactly(
+                        EventPriority.HIGHEST,
+                        EventPriority.HIGH,
+                        EventPriority.NORMAL,
+                        EventPriority.LOW,
+                        EventPriority.LOWEST);
     }
 
     @Test
