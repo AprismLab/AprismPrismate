@@ -111,7 +111,6 @@ public final class AjeExtractor {
             Path workDir = workRoot.resolve(modId);
             cleanDirectory(workDir);
             Files.createDirectories(workDir);
-
             long[] totalBytes = {0};
             int[] totalEntries = {0};
             Path resourcesTarget = workDir.resolve("resources");
@@ -201,21 +200,46 @@ public final class AjeExtractor {
     }
 
     /**
-     * Deletes the contents of a directory if it exists (stale extraction guard).
+     * Deletes the contents of a directory if it exists (stale extraction
+     * guard). Windows file locks from a previous crashed run can make the
+     * delete fail transiently; the deletion is retried, and if it still
+     * fails the extraction continues with overwrite semantics (v26.2-Alpha.1:
+     * a stale lock on last boot's extracted jar must not hard-fail this
+     * boot's load — Files.copy REPLACE_EXISTING refreshes the pinned files).
+     *
+     * @return whether the directory was fully cleaned
      */
-    private void cleanDirectory(Path dir) throws IOException {
+    private boolean cleanDirectory(Path dir) {
         if (!Files.exists(dir)) {
-            return;
+            return true;
         }
-        try (Stream<Path> walk = Files.walk(dir)) {
-            walk.sorted(Comparator.reverseOrder()).forEach(p -> {
+        for (int attempt = 0; attempt < 3; attempt++) {
+            try (Stream<Path> walk = Files.walk(dir)) {
+                walk.sorted(Comparator.reverseOrder()).forEach(p -> {
+                    try {
+                        Files.deleteIfExists(p);
+                    } catch (IOException e) {
+                        throw new RuntimeException("cannot clean " + p, e);
+                    }
+                });
+                return true;
+            } catch (IOException | RuntimeException e) {
+                java.util.logging.Logger.getLogger("prismate").fine(
+                        "Work-dir clean attempt " + (attempt + 1) + " failed for " + dir
+                                + ": " + e.getMessage());
                 try {
-                    Files.deleteIfExists(p);
-                } catch (IOException e) {
-                    throw new RuntimeException("cannot clean " + p, e);
+                    Thread.sleep(100);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return false;
                 }
-            });
+            }
         }
+        java.util.logging.Logger.getLogger("prismate").warning(
+                "Stale work directory " + dir + " could not be fully cleaned "
+                        + "(a previous run may still hold file locks); continuing with "
+                        + "overwrite extraction");
+        return false;
     }
 
     /**

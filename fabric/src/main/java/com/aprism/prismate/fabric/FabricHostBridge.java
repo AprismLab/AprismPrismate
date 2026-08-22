@@ -46,6 +46,26 @@ public final class FabricHostBridge implements HostBridge {
 
     @Override
     public String minecraftVersion() {
+        // v26.2-Alpha.1 fix: probe the RUNNING game version from the loader's
+        // minecraft pseudo-mod container, not the build-time pin. The pin is
+        // only a fallback; reporting the pin on a different segment corrupted
+        // the version-line boot gate and the minecraft dependency environment
+        // id (observed live on 1.21.10). Same pattern as hostLoaderVersion().
+        try {
+            String probed = FabricLoader.getInstance()
+                    .getModContainer("minecraft")
+                    .map(c -> c.getMetadata().getVersion().getFriendlyString())
+                    .filter(v -> !v.isBlank())
+                    .orElse("");
+            if (!probed.isEmpty()) {
+                return probed;
+            }
+            LOG.warning("Fabric minecraft container reported no version; "
+                    + "falling back to the build-time pin ("
+                    + PrismateVersion.minecraftVersion() + ")");
+        } catch (RuntimeException e) {
+            LOG.warning("MC version probe failed: " + e);
+        }
         return PrismateVersion.minecraftVersion();
     }
 
