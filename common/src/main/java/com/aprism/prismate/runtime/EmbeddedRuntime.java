@@ -453,6 +453,17 @@ public final class EmbeddedRuntime {
             List<String> classNames = entrypoints == null
                     ? List.of()
                     : entrypoints.getOrDefault(entrypointKey, List.of());
+            // v26.5-Alpha.1 upstream alignment: annotation-scan fallback. When
+            // the manifest declares no "main" entrypoints, scan the pack's
+            // extracted jars for @AprismMod-annotated classes (mirrors Aprism
+            // core's annotation-scan entrypoint discovery).
+            if (classNames.isEmpty() && "main".equals(entrypointKey)) {
+                AjeExtractor.ExtractedPack pack = extractedById.get(container.getId());
+                if (pack != null && !pack.jars().isEmpty()) {
+                    classNames = AnnotationScanner.scanModEntrypoints(
+                            pack.jars(), container.getId());
+                }
+            }
             if (classNames.isEmpty()) {
                 continue;
             }

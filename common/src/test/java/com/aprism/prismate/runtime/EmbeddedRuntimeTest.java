@@ -58,6 +58,103 @@ class EmbeddedRuntimeTest {
         return aje;
     }
 
+    /**
+     * Writes an {@code .aje} whose manifest declares NO entrypoints and whose
+     * embedded jar carries only an {@code @AprismMod}-annotated entrypoint
+     * class (v26.5-Alpha.1 annotation-scan discovery fixture).
+     */
+    private Path writeAnnotatedMod(String modId, String className, String annotationModId)
+            throws Exception {
+        String manifest = TestFixtures.manifestJson(modId, "1.0.0", "*", null, null);
+        byte[] modClass =
+                TestFixtures.generateAnnotatedRecordingMod(className, modId, annotationModId);
+        byte[] jar = TestFixtures.jarBytes(Map.of(className.replace('.', '/') + ".class", modClass));
+        Path aje = modsDir.resolve(modId + ".aje");
+        TestFixtures.writeAje(aje, manifest, modId, jar, null);
+        return aje;
+    }
+
+    @Nested
+    @DisplayName("Annotation entrypoint discovery")
+    class AnnotationDiscovery {
+
+        @Test
+        @DisplayName("manifest with no entrypoints falls back to @AprismMod scanning")
+        void annotationScanFallback() throws Exception {
+            writeAnnotatedMod("annotatedmod", "com.test.AnnotatedMod", null);
+
+            EmbeddedRuntime runtime = EmbeddedRuntime.create(bridge, config);
+            runtime.boot();
+            runtime.dispatchCommonLifecycle();
+
+            assertThat(PhaseRecorder.events()).containsExactly(
+                    "annotatedmod:PREINIT",
+                    "annotatedmod:INIT",
+                    "annotatedmod:SETUP",
+                    "annotatedmod:COMPLETE");
+            runtime.close();
+        }
+
+        @Test
+        @DisplayName("annotation value matching the mod id is accepted")
+        void matchingValueAccepted() throws Exception {
+            writeAnnotatedMod("valuedmod", "com.test.ValuedMod", "valuedmod");
+
+            EmbeddedRuntime runtime = EmbeddedRuntime.create(bridge, config);
+            runtime.boot();
+            runtime.dispatchCommonLifecycle();
+
+            assertThat(PhaseRecorder.events()).containsExactly(
+                    "valuedmod:PREINIT",
+                    "valuedmod:INIT",
+                    "valuedmod:SETUP",
+                    "valuedmod:COMPLETE");
+            runtime.close();
+        }
+
+        @Test
+        @DisplayName("annotation value mismatching the mod id is not dispatched")
+        void mismatchingValueRejected() throws Exception {
+            writeAnnotatedMod("othermod", "com.test.OtherMod", "different-id");
+
+            EmbeddedRuntime runtime = EmbeddedRuntime.create(bridge, config);
+            runtime.boot();
+            runtime.dispatchCommonLifecycle();
+
+            assertThat(PhaseRecorder.events()).isEmpty();
+            runtime.close();
+        }
+
+        @Test
+        @DisplayName("explicit manifest entrypoints take precedence over the scan")
+        void explicitEntrypointsWin() throws Exception {
+            // Declares com.test.ExplicitMod in the manifest; the jar also holds
+            // an annotated class that must be ignored.
+            String manifest = TestFixtures.manifestJson(
+                    "explicitmod", "1.0.0", "*", "com.test.ExplicitMod", null);
+            byte[] explicitClass =
+                    TestFixtures.generateRecordingMod("com.test.ExplicitMod", "explicitmod");
+            byte[] annotatedClass = TestFixtures.generateAnnotatedRecordingMod(
+                    "com.test.AnnotatedExtra", "SHOULD-NOT-RUN", null);
+            byte[] jar = TestFixtures.jarBytes(Map.of(
+                    "com/test/ExplicitMod.class", explicitClass,
+                    "com/test/AnnotatedExtra.class", annotatedClass));
+            TestFixtures.writeAje(modsDir.resolve("explicitmod.aje"), manifest,
+                    "explicitmod", jar, null);
+
+            EmbeddedRuntime runtime = EmbeddedRuntime.create(bridge, config);
+            runtime.boot();
+            runtime.dispatchCommonLifecycle();
+
+            assertThat(PhaseRecorder.events()).containsExactly(
+                    "explicitmod:PREINIT",
+                    "explicitmod:INIT",
+                    "explicitmod:SETUP",
+                    "explicitmod:COMPLETE");
+            runtime.close();
+        }
+    }
+
     @Nested
     @DisplayName("Lifecycle dispatch")
     class LifecycleDispatch {

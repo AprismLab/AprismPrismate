@@ -226,4 +226,47 @@ public final class TestFixtures {
         mv.visitMaxs(1, 2);
         mv.visitEnd();
     }
+
+    /**
+     * Generates an {@code IAprismMod} implementation class annotated with
+     * {@code @AprismMod} (runtime-visible, optional mod-id value) so the
+     * annotation-scan fallback discovers it when the manifest declares no
+     * entrypoints (v26.5-Alpha.1 upstream alignment).
+     *
+     * @param className          the binary class name (dot form)
+     * @param modId              the mod id used in recorded events
+     * @param annotationModId    the {@code @AprismMod(value = ...)} payload;
+     *                           {@code null} emits the default (empty) form
+     * @return the class bytes
+     */
+    public static byte[] generateAnnotatedRecordingMod(String className, String modId,
+            String annotationModId) {
+        String internalName = className.replace('.', '/');
+        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+        cw.visit(Opcodes.V21, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, internalName, null,
+                "java/lang/Object", new String[]{"com/aprism/api/IAprismMod"});
+
+        org.objectweb.asm.AnnotationVisitor av =
+                cw.visitAnnotation("Lcom/aprism/api/AprismMod;", true);
+        if (annotationModId != null) {
+            av.visit("value", annotationModId);
+        }
+        av.visitEnd();
+
+        MethodVisitor ctor = cw.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+        ctor.visitCode();
+        ctor.visitVarInsn(Opcodes.ALOAD, 0);
+        ctor.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        ctor.visitInsn(Opcodes.RETURN);
+        ctor.visitMaxs(1, 1);
+        ctor.visitEnd();
+
+        generatePhaseMethod(cw, "onPreInitialize", modId + ":PREINIT");
+        generatePhaseMethod(cw, "onInitialize", modId + ":INIT");
+        generatePhaseMethod(cw, "onSetup", modId + ":SETUP");
+        generatePhaseMethod(cw, "onComplete", modId + ":COMPLETE");
+
+        cw.visitEnd();
+        return cw.toByteArray();
+    }
 }
