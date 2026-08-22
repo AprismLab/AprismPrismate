@@ -1,7 +1,7 @@
 # AprismPrismate Architecture Design
 
 > Document 1 of 2 | AprismPrismate Documentation Set
-> Version: v26.3 | Status: Implemented (official)
+> Version: v26.4-Alpha.4 | Status: Implemented (official; MDL-integration hardening in progress)
 > Author: BlockConnect@StarsailsClover
 > Canonical language: English (Chinese summary in README.zh-CN.md)
 
@@ -174,7 +174,7 @@ COMPLETE`, then side `CLIENT` or `SERVER`. Mapping per host loader:
 ### 8.1 Fabric
 | Aprism phase | Fabric hook |
 |---|---|
-| `PREINIT` | Prismate's own `ModInitializer.onInitialize()` (before other Fabric mods) â€” parse + extract + classpath injection |
+| `PREINIT` | Prismate's own `ModInitializer.onInitialize()` (before other Fabric mods) â€?parse + extract + classpath injection |
 | `INIT` | end of Prismate's `ModInitializer.onInitialize()` |
 | `SETUP` | end of Prismate's `ModInitializer.onInitialize()` (Aprism native dispatches SETUP in the same bootstrap) |
 | side `CLIENT` | `ClientModInitializer.onInitializeClient()` |
@@ -243,7 +243,7 @@ Prismate uses the loader-specific bridge:
 Fallback if the loader's injection API is unavailable: Prismate loads the
 extracted jars through a child `URLClassLoader` parented to the host
 classloader and drives lifecycle itself. This works but makes the mod's classes
-invisible to host systems that scan the host classloader â€” use only as a
+invisible to host systems that scan the host classloader â€?use only as a
 degraded path and log a warning.
 
 ## 10. Build, Versioning, and Distribution
@@ -281,7 +281,7 @@ as GitHub Pre-Releases (Alpha) exactly like Aprism and Refract.
 ### 10.5 Installation
 Install Prismate into the HOST loader's mod folder (Fabric `mods/`, NeoForge
 `mods/`, Forge `mods/`). Then place Aprism `.aje` packs into that instance's
-`mods/` directory â€” Prismate discovers them there. Do NOT install the Aprism
+`mods/` directory â€?Prismate discovers them there. Do NOT install the Aprism
 javaagent in the same instance (mutual exclusion, Section 9.2).
 
 ## 11. Open Items and Decisions (track to resolution)
@@ -331,8 +331,8 @@ were resolved against the pinned loader versions with real-game verification
    (v26.1-Alpha.4), so mods loaded through it serve their own resource
    entries (`getResource`/`getResourceAsStream` resolve; verified real-game
    with the ressmoke probe returning `visible=true`). What NeoForge still
-   lacks is host-level resource-manager integration â€” visibility to the
-   host's own resource reload / other mods â€” because FML 11 exposes no
+   lacks is host-level resource-manager integration â€?visibility to the
+   host's own resource reload / other mods â€?because FML 11 exposes no
    runtime resource-injection API. Tracked with OPEN-5.
 3. **Forge (classic) not supported**: the `forge/` module is a visible stub
    that refuses to boot with a named error; Forge support defers post-1.0
@@ -345,7 +345,7 @@ were resolved against the pinned loader versions with real-game verification
 5. **NeoForge version line = 26.x only (v26.1 decision)**: the NeoForge
    bridge is written against FML 11 (`FMLLoader.getCurrent()`, constructor
    injection of the mod-scoped event bus). NeoForge for 1.20.2-1.21.x runs
-   FML 2-4 â€” a different API surface â€” so the NeoForge artifact is
+   FML 2-4 â€?a different API surface â€?so the NeoForge artifact is
    intentionally pinned to the 26.x line (neoforge.mods.toml
    `versionRange = "[26.2,)"`); backporting to FML 2-4 is out of scope for
    v26.1. The Fabric bridge covers the 1.20/1.21 segments instead.
@@ -372,3 +372,4 @@ were resolved against the pinned loader versions with real-game verification
    upstream Aprism lowering its API baseline.
 
 End of document.
+

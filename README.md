@@ -4,7 +4,7 @@ Aprism | AprismPrismate is a Minecraft: Java Edition mod that runs inside Fabric
 enabling these loaders to load native Aprism `*.aje` mods. (The `forge/` module is a visible stub;
 classic Forge is deferred post-1.0.)
 
-> Author: BlockConnect@StarsailsClover | License: Apache‑2.0
+> Author: BlockConnect@StarsailsClover | License: Apache�?.0
 > Companion repository for [Aprism](https://github.com/NDBlockConnect/Aprism).
 
 ## What Is This
@@ -46,10 +46,10 @@ relocated under `com.aprism.prismate.internal`, while **not relocating** `com.ap
 ## Versions & Releases
 
 - Versioning follows the Aprism family convention: `v<year>.<minor>[-Alpha.<n>]`, sharing the same minor‑version line as the embedded Aprism core.
-- Artifact naming examples: `AprismPrismate‑v26.3‑Fa‑26.2.jar` (Fabric), `-N‑` (NeoForge).
-- Cosign keyless signing + SHA‑256 checksums + CycloneDX SBOM + GitHub Pre‑Releases, consistent with Aprism / Refract workflows.
+- Artifact naming examples: `AprismPrismate‑v26.3‑Fa�?6.2.jar` (Fabric), `-N‑` (NeoForge).
+- Cosign keyless signing + SHA�?56 checksums + CycloneDX SBOM + GitHub Pre‑Releases, consistent with Aprism / Refract workflows.
 
-## Supported Minecraft Versions (JE Line, v26.3+)
+## Supported Minecraft Versions (JE Line, v26.4+)
 
 Prismate covers the JE line `1.20 .. 26.2` (mirrors Aprism's `VersionLineRegistry`), with real‑game verified landings:
 
@@ -59,12 +59,20 @@ Prismate covers the JE line `1.20 .. 26.2` (mirrors Aprism's `VersionLineRegistr
 | 1.21.x | Fabric | lifecycle + resources | obfuscated; Intermediary remap is the Aprism agent's job |
 | 1.20.x | Fabric | lifecycle + resources | obfuscated; same remap boundary |
 
-- **NeoForge is 26.x‑only** for v26.3: the bridge targets FML 11; NeoForge 1.20.2‑1.21.x runs FML 2‑4 (a different API) and is out of scope. The Fabric bridge covers those segments.
-- **Forge (classic) is a stub** that refuses to boot with a named error (deferred post‑1.0).
-- **Java runtime floor is 21**, not the 1.20/1.21 official Java 17: the embedded Aprism API is Java 21 bytecode (upstream Aprism compiles at `--release 21`). `fabric.mod.json` keeps `java: ">=21"` so the loader never installs Prismate into a Java‑17 profile. MC 1.20+ is forward‑compatible with newer JVMs, so 1.20.x/1.21.x run under Java 21.
-- Packs are loaded as‑is; Prismate does not remap obfuscated classes (docs/01 §13, issues 6‑7).
+All four host-integration surfaces (Fabric 26.2, NeoForge 26.2, Fabric 1.21.10,
+Fabric 1.20.1) are additionally verified live through MDK/MDL-launched real
+instances (`mdl launch <instance> --detach`): correct runtime MC version
+reporting, full `PREINIT -> INIT -> SETUP -> COMPLETE` dispatch (COMPLETE via
+FMLLoadCompleteEvent on NeoForge), and resource injection on every segment
+(v26.4 line).
+
+- **NeoForge is 26.x‑only** for v26.4: the bridge targets FML 11; NeoForge 1.20.2�?.21.x runs FML 2�? (a different API) and is out of scope. The Fabric bridge covers those segments.
+- **Forge (classic) is a stub** that refuses to boot with a named error (deferred post�?.0).
+- **Java runtime floor is 21**, not the 1.20/1.21 official Java 17: the embedded Aprism API is Java 21 bytecode (upstream Aprism compiles at `--release 21`). `fabric.mod.json` keeps `java: ">=21"` so the loader never installs Prismate into a Java�?7 profile. MC 1.20+ is forward‑compatible with newer JVMs, so 1.20.x/1.21.x run under Java 21.
+- Packs are loaded as‑is; Prismate does not remap obfuscated classes (docs/01 §13, issues 6�?).
 
 ## Installation
 
 Place Prismate into your host loader’s `mods/` folder, then drop Aprism `.aje` mods into the same instance’s `mods/`.
 **Do not** install the Aprism javaagent in the same instance (they are mutually exclusive).
+

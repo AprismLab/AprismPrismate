@@ -1,7 +1,7 @@
 # AprismPrismate Developer Guide
 
 > Document 2 of 2 | AprismPrismate Documentation Set
-> Version: v26.3 | Status: Implemented (official)
+> Version: v26.4-Alpha.4 | Status: Implemented (official)
 > Author: BlockConnect@StarsailsClover
 > Canonical language: English
 
@@ -67,29 +67,29 @@ These are exact; copy, do not paraphrase.
 
 Do these in order; each has a concrete acceptance test.
 
-### Step 1 â€” Scaffold
+### Step 1 â€?Scaffold
 Set up `settings.gradle` with the three subprojects and a version catalog. Wire
 Aprism modules as a composite build.
 Accepts: `./gradlew build` compiles empty modules.
 
-### Step 2 â€” Manifest parsing reuse
+### Step 2 â€?Manifest parsing reuse
 In `common`, call Aprism's `AprismManifestParser` to parse a sample
 `aprism.manifest.json` from a test `.aje`.
 Accepts: unit test parses a valid manifest and rejects a malformed one.
 
-### Step 3 â€” AjeDiscovery + AjeExtractor
+### Step 3 â€?AjeDiscovery + AjeExtractor
 Scan a temp dir of `.aje` files; for each, extract `<modid>.jar`, `resources/`,
 `mixins/`, `lib/` into `<workdir>/<modid>/`.
 Accepts: unit test extracts a synthetic `.aje` and finds all expected entries.
 
-### Step 4 â€” EmbeddedRuntime
+### Step 4 â€?EmbeddedRuntime
 Implement dependency resolution using Aprism's `DependencyResolver` with the
 environment map (Section 3) and lifecycle dispatch calling `IAprismMod` phase
 methods on a sample mod class loaded from an extracted jar.
 Accepts: unit test drives PREINIT->INIT->SETUP->COMPLETE on a sample mod and
 records the calls in order.
 
-### Step 5 â€” Fabric entrypoint + classloader bridge (M1/M2)
+### Step 5 â€?Fabric entrypoint + classloader bridge (M1/M2)
 Implement `FabricEntrypoint` as a Fabric mod with an early entrypoint; in
 `onInitialize` run discovery -> extraction -> classpath injection -> lifecycle.
 Use Fabric's classloader add-jar API (confirm OPEN-4). Add `resources/` so the
@@ -97,26 +97,26 @@ host loads the mod's assets.
 Accepts: launch a Fabric instance with Prismate + a sample `.aje`; the sample
 mod's `onInitialize` runs and (with a resource) the resource is visible.
 
-### Step 6 â€” Mixin passthrough
+### Step 6 â€?Mixin passthrough
 Register extracted `mixins/*.json` with the host loader's Mixin environment so
 `.aje` mods that use Mixin actually patch.
 Accepts: a sample `.aje` with a trivial mixin applies it in Fabric.
 
-### Step 7 â€” NeoForge entrypoint + bridge (M3)
+### Step 7 â€?NeoForge entrypoint + bridge (M3)
 Mirror Step 5/6 for NeoForge using `@Mod` constructor + FML setup events.
 Accepts: same sample `.aje` loads and initializes on NeoForge.
 
-### Step 8 â€” Mutual exclusion guard (M5)
+### Step 8 â€?Mutual exclusion guard (M5)
 Detect the Aprism agent (system property, see OPEN-3) at bootstrap; if present,
 log a clear error and skip all Prismate work.
 Accepts: with agent property set, Prismate logs refusal and does not load mods.
 
-### Step 9 â€” Error reporting polish
+### Step 9 â€?Error reporting polish
 Collect per-pack load failures; at the end, log each failed pack + reason.
 Accepts: a deliberately broken `.aje` produces a named, readable failure without
 stopping other mods.
 
-### Step 10 â€” Signing + release (M6)
+### Step 10 â€?Signing + release (M6)
 Add cosign keyless signing + checksums + GitHub Pre-Release workflow, mirroring
 the Aprism and AprismRefract pipelines. Bump Prismate version on the same minor
 line as the embedded Aprism core.
@@ -125,7 +125,7 @@ Accepts: a signed, checksummed Pre-Release publishes per-loader artifacts.
 ## 5. Testing strategy
 
 - Unit tests (common): manifest parse, discovery, extraction, dependency
-  resolution, lifecycle dispatch order â€” all runnable headless.
+  resolution, lifecycle dispatch order â€?all runnable headless.
 - Integration tests (per loader): use the project's MDL launcher tooling (see
   the Aprism workspace) to create real Fabric/NeoForge instances, install
   Prismate + sample `.aje`, launch, and assert the mod initialized (via MDL
@@ -145,3 +145,4 @@ Accepts: a signed, checksummed Pre-Release publishes per-loader artifacts.
   perform injection in the EARLIEST host entrypoint available.
 
 End of guide.
+
