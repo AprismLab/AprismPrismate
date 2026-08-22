@@ -6,6 +6,7 @@ import com.aprism.api.AprismPhase;
 import com.aprism.prismate.config.PrismateConfig;
 import com.aprism.prismate.host.HostBridge;
 import com.aprism.prismate.runtime.EmbeddedRuntime;
+import com.aprism.prismate.status.PrismateStatusPublisher;
 import com.aprism.prismate.version.PrismateVersionLine;
 
 /**
@@ -75,12 +76,14 @@ public final class PrismateBootstrap {
         if (AgentConflictDetector.isAprismAgentPresent()) {
             bridge.log(AgentConflictDetector.refusalMessage());
             bootOutcome = BootOutcome.AGENT_CONFLICT;
+            publishOutcome(bootOutcome);
             return bootOutcome;
         }
         PrismateConfig config = PrismateConfig.load(bridge.gameDir());
         if (!config.isEnabled()) {
             bridge.log("AprismPrismate is disabled via configuration; no work will be done");
             bootOutcome = BootOutcome.DISABLED;
+            publishOutcome(bootOutcome);
             return bootOutcome;
         }
         if (PrismateVersionLine.resolve(bridge.minecraftVersion()).isEmpty()) {
@@ -89,6 +92,7 @@ public final class PrismateBootstrap {
                     + " is outside the supported JE version line ("
                     + PrismateVersionLine.describeLine() + ")");
             bootOutcome = BootOutcome.VERSION_UNSUPPORTED;
+            publishOutcome(bootOutcome);
             return bootOutcome;
         }
         bridge.log("AprismPrismate " + PrismateVersion.prismateVersion()
@@ -102,8 +106,27 @@ public final class PrismateBootstrap {
         } catch (RuntimeException e) {
             bridge.log("AprismPrismate boot failed: " + e);
             bootOutcome = BootOutcome.BOOT_FAILED;
+            publishOutcome(bootOutcome);
         }
         return bootOutcome;
+    }
+
+    /**
+     * Publishes the machine-readable status file with the boot outcome as
+     * the phase (v26.6-Alpha.1 MDL deep integration): a refused or failed
+     * boot is diagnosable from aprism-status.json without parsing logs.
+     */
+    private void publishOutcome(BootOutcome outcome) {
+        try {
+            var snapshot = PrismateStatusPublisher.buildSnapshot(
+                    PrismateVersion.prismateVersion(),
+                    PrismateVersion.embeddedAprismVersion(),
+                    bridge.loaderKey(), bridge.minecraftVersion(),
+                    outcome.name(), null);
+            PrismateStatusPublisher.publish(bridge.gameDir(), snapshot);
+        } catch (RuntimeException e) {
+            bridge.log("Could not publish the status file: " + e);
+        }
     }
 
     /**
@@ -159,13 +182,41 @@ public final class PrismateBootstrap {
         if (guidanceFile != null) {
             bridge.log("Prismate first-run guidance written to " + guidanceFile);
         }
+        // v26.6-Alpha.1 MDL deep integration: publish the machine-readable
+        // status file (phase=LOADED) so external tools diagnose the bridge
+        // without parsing logs.
+        try {
+            var snapshot = PrismateStatusPublisher.buildSnapshot(
+                    PrismateVersion.prismateVersion(),
+                    PrismateVersion.embeddedAprismVersion(),
+                    bridge.loaderKey(), bridge.minecraftVersion(),
+                    "LOADED", runtime.getReport());
+            Path statusFile = PrismateStatusPublisher.publish(bridge.gameDir(), snapshot);
+            if (statusFile != null) {
+                bridge.log("Prismate status published to " + statusFile);
+            }
+        } catch (RuntimeException e) {
+            bridge.log("Could not publish the status file: " + e);
+        }
     }
 
     /**
-     * Releases runtime resources (fallback classloader).
+     * Releases runtime resources (fallback classloader) and refreshes the
+     * machine-readable status file with phase=SHUTDOWN (v26.6-Alpha.1), so a
+     * clean exit never leaves a stale LOADED snapshot behind.
      */
     public void shutdown() {
         if (runtime != null) {
+            try {
+                var snapshot = PrismateStatusPublisher.buildSnapshot(
+                        PrismateVersion.prismateVersion(),
+                        PrismateVersion.embeddedAprismVersion(),
+                        bridge.loaderKey(), bridge.minecraftVersion(),
+                        "SHUTDOWN", runtime.getReport());
+                PrismateStatusPublisher.publish(bridge.gameDir(), snapshot);
+            } catch (RuntimeException e) {
+                bridge.log("Could not refresh the status file: " + e);
+            }
             runtime.close();
         }
     }
