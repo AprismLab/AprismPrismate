@@ -73,14 +73,19 @@ public class FallenTrees implements IAprismMod {
 
     @Override
     public void onSetup(AprismContext context) {
-        // Resource visibility probe: the pack's data/ directory must be
-        // reachable through the context classloader for datapack-driven
-        // worldgen to work.
+        // Resource visibility probes: the pack's data/ directory must be
+        // reachable through the entrypoint classloader for datapack-driven
+        // worldgen to work (v0.2: full worldgen JSON chain).
         ClassLoader cl = FallenTrees.class.getClassLoader();
         String probe = "data/fallentrees/worldgen_probe.txt";
-        boolean visible = cl.getResource(probe) != null;
-        System.out.println(MARKER + " SETUP resource probe " + probe
-                + " visible=" + visible);
+        String cfg = "data/fallentrees/worldgen/configured_feature/fallen_oak_marker.json";
+        String placed = "data/fallentrees/worldgen/placed_feature/fallen_oak_markers.json";
+        String biome = "data/minecraft/worldgen/biome/forest.json";
+        System.out.println(MARKER + " SETUP resource probes:"
+                + " probe=" + (cl.getResource(probe) != null)
+                + " configured=" + (cl.getResource(cfg) != null)
+                + " placed=" + (cl.getResource(placed) != null)
+                + " forestOverride=" + (cl.getResource(biome) != null));
     }
 
     @Override
