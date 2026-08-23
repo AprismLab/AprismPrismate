@@ -64,9 +64,32 @@ Fabric 1.20.1) are additionally verified live through MDK/MDL-launched real
 instances (`mdl launch <instance> --detach`): correct runtime MC version
 reporting, full `PREINIT -> INIT -> SETUP -> COMPLETE` dispatch (COMPLETE via
 FMLLoadCompleteEvent on NeoForge), and resource injection on every segment
-(v26.4 line).
+(v26.4 line; matrix re-proven per line since).
 
-- **NeoForge is 26.x‑only** for v26.4: the bridge targets FML 11; NeoForge 1.20.2�?.21.x runs FML 2�? (a different API) and is out of scope. The Fabric bridge covers those segments.
+## Machine-Readable Status (v26.6+)
+
+Prismate publishes `<gameDir>/aprism-status.json` after the load report and on
+shutdown — the SAME `aprism.status/v1` schema and file name as the Aprism agent
+(the two are mutually exclusive in one instance, so exactly one publisher exists
+per game root). External tooling such as MDL diagnose reads one file regardless
+of which loader published it:
+
+```json
+{
+  "schemaVersion": "aprism.status/v1",
+  "publisher": "prismate",
+  "phase": "LOADED",
+  "okCount": 8,
+  "failureCount": 0,
+  "units": [ { "kind": "extraction", "id": "examplemod", "state": "OK", "...": "..." } ]
+}
+```
+
+Refused boots publish their outcome (`AGENT_CONFLICT`, `DISABLED`,
+`VERSION_UNSUPPORTED`, `BOOT_FAILED`) as the phase, so a failed boot is
+machine-diagnosable without parsing game logs.
+
+- **NeoForge is 26.x‑only** for v26.6: the bridge targets FML 11; NeoForge 1.20.2�?.21.x runs FML 2�? (a different API) and is out of scope. The Fabric bridge covers those segments.
 - **Forge (classic) is a stub** that refuses to boot with a named error (deferred post�?.0).
 - **Java runtime floor is 21**, not the 1.20/1.21 official Java 17: the embedded Aprism API is Java 21 bytecode (upstream Aprism compiles at `--release 21`). `fabric.mod.json` keeps `java: ">=21"` so the loader never installs Prismate into a Java�?7 profile. MC 1.20+ is forward‑compatible with newer JVMs, so 1.20.x/1.21.x run under Java 21.
 - Packs are loaded as‑is; Prismate does not remap obfuscated classes (docs/01 §13, issues 6�?).

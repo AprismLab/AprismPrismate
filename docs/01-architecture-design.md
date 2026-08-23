@@ -1,7 +1,7 @@
 # AprismPrismate Architecture Design
 
 > Document 1 of 2 | AprismPrismate Documentation Set
-> Version: v26.4-Alpha.4 | Status: Implemented (official; MDL-integration hardening in progress)
+> Version: v26.6-Alpha.5 | Status: Implemented (official; status publishing live-verified both loaders)
 > Author: BlockConnect@StarsailsClover
 > Canonical language: English (Chinese summary in README.zh-CN.md)
 
@@ -372,4 +372,5 @@ were resolved against the pinned loader versions with real-game verification
    upstream Aprism lowering its API baseline.
 
 End of document.
+
 

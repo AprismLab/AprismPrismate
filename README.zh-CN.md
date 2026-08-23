@@ -44,3 +44,8 @@ Prismate 瑕嗙洊 JE 绾?`1.20 .. 26.2`锛堥暅鍍?Aprism 鐨?`VersionLineRegistry`锛夛
 ## 瀹夎
 
 鎶?Prismate 鏀捐繘瀹夸富鍔犺浇鍣ㄧ殑 `mods/`锛屽啀鎶?Aprism 鐨?`.aje` 妯＄粍鏀捐繘鍚屼竴瀹炰緥鐨?`mods/`銆?**涓嶈**鍦ㄥ悓涓�瀹炰緥鍐嶈 Aprism javaagent锛堜袱鑰呬簰鏂ワ級銆?
+
+
+## 机器可读状态（v26.6+）
+
+Prismate 在加载报告输出后与关闭时发布 `<gameDir>/aprism-status.json` —— 与 Aprism agent 相同的 `aprism.status/v1` schema 与文件名（两者在同一实例互斥，每个 game root 只有一个发布者）。MDL diagnose 等外部工具无论哪个加载器发布都只读这一个文件。拒绝启动时会把结果（`AGENT_CONFLICT` / `DISABLED` / `VERSION_UNSUPPORTED` / `BOOT_FAILED`）作为 phase 发布，启动失败无需解析日志即可机读诊断。
