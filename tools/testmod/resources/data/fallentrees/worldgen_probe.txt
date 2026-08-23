@@ -1,0 +1,3 @@
+Fallen-trees test mod resource probe (v0.1).
+If a loader can see this file through the context classloader, datapack-driven
+worldgen content under data/fallentrees/ is reachable.
