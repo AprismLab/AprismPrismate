@@ -176,6 +176,60 @@ public final class NeoForgeHostBridge implements HostBridge {
         }
     }
 
+    @Override
+    public boolean registerTickHook(com.aprism.prismate.host.HostTickListener listener) {
+        // v26.8-Alpha.1 loader-symmetric ticks: register on NeoForge's game
+        // bus for ClientTickEvent$Post (FML 11 split tick events into Pre/Post
+        // subclasses). Reached reflectively via the PUBLIC IEventBus interface
+        // and the JDK Consumer functional type - the impl class's own methods
+        // are not reflectively accessible, and the full neoforge jar is not a
+        // compile dependency.
+        try {
+            Class<?> neoForge = Class.forName("net.neoforged.neoforge.common.NeoForge");
+            Object eventBus = neoForge.getField("EVENT_BUS").get(null);
+            Class<?> postEvent = Class.forName(
+                    "net.neoforged.neoforge.client.event.ClientTickEvent$Post");
+            Class<?> iEventBus = Class.forName("net.neoforged.bus.api.IEventBus");
+            java.lang.reflect.Method addListener = iEventBus.getMethod(
+                    "addListener", Class.class, java.util.function.Consumer.class);
+            long[] counter = {0};
+            Object consumerProxy = java.lang.reflect.Proxy.newProxyInstance(
+                    getClass().getClassLoader(),
+                    new Class<?>[]{java.util.function.Consumer.class},
+                    (p, method, args) -> {
+                        // JDK proxies forward Object methods too; returning
+                        // null for hashCode made the bus's internal ordering
+                        // unbox null (live-found NPE).
+                        switch (method.getName()) {
+                            case "accept":
+                                listener.onTick(counter[0]++);
+                                return null;
+                            case "hashCode":
+                                return System.identityHashCode(p);
+                            case "equals":
+                                return p == args[0];
+                            case "toString":
+                                return "PrismateTickConsumer";
+                            default:
+                                return null;
+                        }
+                    });
+            addListener.invoke(eventBus, postEvent, consumerProxy);
+            LOG.info("Host tick hook registered (NeoForge ClientTickEvent$Post)");
+            return true;
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            Throwable root = e;
+            while (root.getCause() != null && root.getCause() != root) {
+                root = root.getCause();
+            }
+            LOG.warning("Could not register the host tick hook (root cause): " + root);
+            return false;
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            LOG.warning("Could not register the host tick hook: " + e);
+            return false;
+        }
+    }
+
     /** Unwraps the cause chain to its root for a readable report line. */
     private static String describe(Throwable t) {
         Throwable cur = t;
