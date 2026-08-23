@@ -99,3 +99,11 @@ machine-diagnosable without parsing game logs.
 Place Prismate into your host loader’s `mods/` folder, then drop Aprism `.aje` mods into the same instance’s `mods/`.
 **Do not** install the Aprism javaagent in the same instance (they are mutually exclusive).
 
+
+## Annotation Entrypoints + Game Ticks (v26.5+ / v26.7+)
+
+An \.aje\ mod may skip the \entrypoints\ map entirely: classes annotated
+\@AprismMod\ are discovered by Prismate's ASM scan fallback (v26.5). After the
+lifecycle completes, Prismate delivers one \GameTickEvent(END)\ per host game
+tick through the shared event bus (v26.7 host-tick bridge), so mods can drive
+per-tick logic identically under Prismate.
