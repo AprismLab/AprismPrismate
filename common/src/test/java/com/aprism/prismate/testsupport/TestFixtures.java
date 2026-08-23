@@ -214,6 +214,93 @@ public final class TestFixtures {
         return cw.toByteArray();
     }
 
+    /**
+     * Generates the class pair for a mod that subscribes to GameTickEvent on
+     * the shared bus during INIT and records delivered stages through
+     * {@link TickProbe}: the entrypoint itself plus its event listener.
+     *
+     * @param className the binary entrypoint class name (dot form)
+     * @return entry name -> class bytes for both classes
+     */
+    public static Map<String, byte[]> generateTickSubscriberPair(String className) {
+        String internalName = className.replace('.', '/');
+        String listenerInternal = internalName + "$Listener";
+        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+        cw.visit(Opcodes.V21, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, internalName, null,
+                "java/lang/Object", new String[]{"com/aprism/api/IAprismMod"});
+
+        MethodVisitor ctor = cw.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+        ctor.visitCode();
+        ctor.visitVarInsn(Opcodes.ALOAD, 0);
+        ctor.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        ctor.visitInsn(Opcodes.RETURN);
+        ctor.visitMaxs(1, 1);
+        ctor.visitEnd();
+
+        // public void onInitialize(AprismContext ctx) {
+        //     ctx.getEventBus().register(GameTickEvent.class, new Listener());
+        // }
+        MethodVisitor init = cw.visitMethod(Opcodes.ACC_PUBLIC, "onInitialize",
+                "(Lcom/aprism/api/AprismContext;)V", null, null);
+        init.visitCode();
+        init.visitVarInsn(Opcodes.ALOAD, 1);
+        init.visitMethodInsn(Opcodes.INVOKEINTERFACE,
+                "com/aprism/api/AprismContext", "getEventBus",
+                "()Lcom/aprism/api/AprismEventBus;", true);
+        init.visitVarInsn(Opcodes.ASTORE, 2);
+        init.visitVarInsn(Opcodes.ALOAD, 2);
+        init.visitLdcInsn(org.objectweb.asm.Type.getType(
+                "Lcom/aprism/api/gameevent/GameTickEvent;"));
+        init.visitTypeInsn(Opcodes.NEW, listenerInternal);
+        init.visitInsn(Opcodes.DUP);
+        init.visitMethodInsn(Opcodes.INVOKESPECIAL, listenerInternal,
+                "<init>", "()V", false);
+        init.visitMethodInsn(Opcodes.INVOKEINTERFACE,
+                "com/aprism/api/AprismEventBus", "register",
+                "(Ljava/lang/Class;Lcom/aprism/api/AprismEventListener;)V", true);
+        init.visitInsn(Opcodes.RETURN);
+        init.visitMaxs(4, 3);
+        init.visitEnd();
+
+        cw.visitEnd();
+
+        // The listener: records each delivered tick stage.
+        ClassWriter lw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+        lw.visit(Opcodes.V21, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, listenerInternal, null,
+                "java/lang/Object",
+                new String[]{"com/aprism/api/AprismEventListener"});
+
+        MethodVisitor lctor = lw.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+        lctor.visitCode();
+        lctor.visitVarInsn(Opcodes.ALOAD, 0);
+        lctor.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        lctor.visitInsn(Opcodes.RETURN);
+        lctor.visitMaxs(1, 1);
+        lctor.visitEnd();
+
+        MethodVisitor onEvent = lw.visitMethod(Opcodes.ACC_PUBLIC, "onEvent",
+                "(Lcom/aprism/api/AprismEvent;)V", null, null);
+        onEvent.visitCode();
+        onEvent.visitVarInsn(Opcodes.ALOAD, 1);
+        onEvent.visitTypeInsn(Opcodes.CHECKCAST, "com/aprism/api/gameevent/GameTickEvent");
+        onEvent.visitMethodInsn(Opcodes.INVOKEVIRTUAL,
+                "com/aprism/api/gameevent/GameTickEvent", "getStage",
+                "()Lcom/aprism/api/gameevent/GameTickEvent$Stage;", false);
+        onEvent.visitMethodInsn(Opcodes.INVOKESTATIC,
+                "com/aprism/prismate/testsupport/TickProbe", "record",
+                "(Lcom/aprism/api/gameevent/GameTickEvent$Stage;)V", false);
+        onEvent.visitInsn(Opcodes.RETURN);
+        onEvent.visitMaxs(1, 2);
+        onEvent.visitEnd();
+
+        lw.visitEnd();
+
+        Map<String, byte[]> classes = new LinkedHashMap<>();
+        classes.put(internalName + ".class", cw.toByteArray());
+        classes.put(listenerInternal + ".class", lw.toByteArray());
+        return classes;
+    }
+
     private static void generatePhaseMethod(ClassWriter cw, String methodName, String event) {
         MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, methodName,
                 "(Lcom/aprism/api/AprismContext;)V", null, null);

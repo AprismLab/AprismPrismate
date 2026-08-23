@@ -435,6 +435,38 @@ public final class EmbeddedRuntime {
     }
 
     /**
+     * Registers the host tick hook (v26.7-Alpha.3 host-tick bridge). Each
+     * host tick is turned into a GameTickEvent(END stage) delivery on the
+     * shared event bus, fail-safely. The START stage is not delivered: the
+     * bridge cannot intercept the host's own tick processing. Idempotent:
+     * the hook is registered at most once per runtime.
+     *
+     * @return whether the host offered a tick hook this boot
+     */
+    public boolean startTicking() {
+        if (tickingStarted) {
+            return tickingAvailable;
+        }
+        tickingStarted = true;
+        tickingAvailable = bridge.registerTickHook(this::onHostTick);
+        return tickingAvailable;
+    }
+
+    private boolean tickingStarted;
+    private boolean tickingAvailable;
+
+    private void onHostTick(long tickNumber) {
+        try {
+            eventBus.post(new com.aprism.api.gameevent.GameTickEvent(
+                    com.aprism.api.gameevent.GameTickEvent.Stage.END, tickNumber));
+        } catch (RuntimeException e) {
+            // A listener throwing must never kill the game tick loop.
+            java.util.logging.Logger.getLogger("prismate")
+                    .warning("GameTickEvent listener threw; isolated: " + e);
+        }
+    }
+
+    /**
      * Dispatches one lifecycle phase over every loaded mod in dependency
      * order. A mod throwing inside its entrypoint is isolated: the failure is
      * recorded and its remaining entrypoints are skipped, without affecting

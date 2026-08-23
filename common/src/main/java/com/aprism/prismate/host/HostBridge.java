@@ -83,6 +83,20 @@ public interface HostBridge {
     }
 
     /**
+     * Best-effort: registers a callback invoked once per host game tick
+     * (v26.7-Alpha.3 host-tick bridge). Default is unavailable; loader
+     * bridges override when the host offers a tick event surface (Fabric API
+     * lifecycle events on Fabric).
+     *
+     * @param listener the per-tick callback
+     * @return {@code true} when the host tick hook was registered;
+     *         {@code false} when the host offers none this boot
+     */
+    default boolean registerTickHook(HostTickListener listener) {
+        return false;
+    }
+
+    /**
      * Logs through the host loader's logging when available. Default writes to
      * {@code java.util.logging}.
      *

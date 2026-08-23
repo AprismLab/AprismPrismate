@@ -123,6 +123,48 @@ public final class FabricHostBridge implements HostBridge {
         }
     }
 
+    @Override
+    public boolean registerTickHook(com.aprism.prismate.host.HostTickListener listener) {
+        // v26.7-Alpha.3 host-tick bridge: reflectively register on Fabric
+        // API's ClientTickEvents.END_CLIENT_TICK so the bridge can drive the
+        // embedded runtime's GameTickEvent deliveries per game tick. Kept
+        // reflective so Prismate does not hard-depend on Fabric API.
+        try {
+            Class<?> events = Class.forName(
+                    "net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents");
+            Object endTick = events.getField("END_CLIENT_TICK").get(null);
+            Class<?> listenerType = Class.forName(
+                    "net.fabricmc.fabric.api.client.event.lifecycle.v1"
+                            + ".ClientTickEvents$EndTick");
+            // Look register up on the PUBLIC Event<T> interface: the runtime
+            // object is a fabric-internal implementation whose bridge methods
+            // are not accessible reflectively from outside its package.
+            Class<?> eventInterface = Class.forName(
+                    "net.fabricmc.fabric.api.event.Event");
+            java.lang.reflect.Method register =
+                    eventInterface.getMethod("register", Object.class);
+            long[] counter = {0};
+            Object proxy = java.lang.reflect.Proxy.newProxyInstance(
+                    listenerType.getClassLoader(),
+                    new Class<?>[]{listenerType},
+                    (p, method, args) -> {
+                        // The interface method name differs across Fabric API
+                        // lines (onEndTick vs onEndClientTick); forward any
+                        // single-argument tick callback.
+                        if (method.getName().startsWith("onEnd")) {
+                            listener.onTick(counter[0]++);
+                        }
+                        return null;
+                    });
+            register.invoke(endTick, proxy);
+            LOG.info("Host tick hook registered (ClientTickEvents.END_CLIENT_TICK)");
+            return true;
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            LOG.warning("Could not register the host tick hook: " + e);
+            return false;
+        }
+    }
+
     /**
      * Sets the Mixin compatibility level to the highest level the current JVM
      * supports (capped at what the Mixin enum declares). Uses reflection so

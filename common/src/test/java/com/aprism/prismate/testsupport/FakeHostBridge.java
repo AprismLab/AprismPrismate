@@ -24,6 +24,7 @@ public final class FakeHostBridge implements HostBridge {
     private final List<Path> injectedResourceDirs = new ArrayList<>();
     private final List<String> offeredMixinConfigs = new ArrayList<>();
     private final List<String> logLines = new ArrayList<>();
+    private com.aprism.prismate.host.HostTickListener tickListener;
 
     /**
      * @param gameDir        the fake game directory
@@ -93,6 +94,26 @@ public final class FakeHostBridge implements HostBridge {
     @Override
     public void offerMixinConfig(String configName) {
         offeredMixinConfigs.add(configName);
+    }
+
+    @Override
+    public boolean registerTickHook(com.aprism.prismate.host.HostTickListener listener) {
+        this.tickListener = listener;
+        return true;
+    }
+
+    /**
+     * Simulates the host tick loop: fires the registered tick hook for the
+     * given number of ticks (tests drive GameTickEvent deliveries with it).
+     *
+     * @param ticks how many ticks to fire
+     */
+    public void fireTicks(int ticks) {
+        for (long i = 0; i < ticks; i++) {
+            if (tickListener != null) {
+                tickListener.onTick(i);
+            }
+        }
     }
 
     @Override

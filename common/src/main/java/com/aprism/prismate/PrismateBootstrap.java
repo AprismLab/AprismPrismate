@@ -149,6 +149,11 @@ public final class PrismateBootstrap {
             return;
         }
         runtime.dispatchPhase(AprismPhase.COMPLETE);
+        // v26.7-Alpha.3 host-tick bridge: once the lifecycle is complete,
+        // start delivering host ticks as GameTickEvents to loaded mods.
+        if (runtime.startTicking()) {
+            bridge.log("Host tick hook active; GameTickEvents will be delivered");
+        }
     }
 
     /**
