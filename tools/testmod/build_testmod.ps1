@@ -54,15 +54,23 @@ $manifest = @'
   "custom": {}
 }
 '@
-$tmpManifest = Join-Path $out "aprism.manifest.json"
-[System.IO.File]::WriteAllText($tmpManifest, $manifest)
+
+# Stage the pack layout required by the .aje structural contract: the
+# resources live under a top-level resources/ directory inside the archive
+# (AjeExtractor promotes that directory to the pack's resource root).
+$staging = Join-Path $out "staging"
+Remove-Item -Recurse -Force $staging -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path (Join-Path $staging "resources") -Force | Out-Null
+[System.IO.File]::WriteAllText((Join-Path $staging "aprism.manifest.json"), $manifest)
+Copy-Item (Join-Path $out "fallentrees.jar") $staging -Force
+Copy-Item (Join-Path $root "resources\*") (Join-Path $staging "resources") -Recurse -Force
 
 Push-Location $root
 try {
     & $jarExe --create --file (Join-Path $out "fallen_trees.aje") `
-        -C $out "aprism.manifest.json" `
-        -C $out "fallentrees.jar" `
-        -C "resources" "."
+        -C $staging "aprism.manifest.json" `
+        -C $staging "fallentrees.jar" `
+        -C $staging "resources"
     if ($LASTEXITCODE -ne 0) { throw "aje packaging failed" }
 } finally {
     Pop-Location
