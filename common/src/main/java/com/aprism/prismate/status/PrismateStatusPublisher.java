@@ -123,14 +123,21 @@ public final class PrismateStatusPublisher {
     /**
      * Bounds a failure string for the machine-readable document: over-long
      * chains are truncated with an explicit ellipsis marker so tooling can
-     * tell truncation from content.
+     * tell truncation from content. Surrogate-aware: a cut landing between
+     * the halves of a surrogate pair backs up one char, otherwise the
+     * isolated half breaks UTF-8 encoding and the whole status publish
+     * fails (live-found via boundary adversarial test, v26.9 post-GA).
      */
     private static String bound(String failure) {
         if (failure.length() <= MAX_FAILURE_CHARS) {
             return failure;
         }
-        return failure.substring(0, MAX_FAILURE_CHARS)
-                + "...[truncated " + (failure.length() - MAX_FAILURE_CHARS)
+        int cut = MAX_FAILURE_CHARS;
+        if (Character.isHighSurrogate(failure.charAt(cut - 1))) {
+            cut--;
+        }
+        return failure.substring(0, cut)
+                + "...[truncated " + (failure.length() - cut)
                 + " chars; full chain in load-report.txt]";
     }
 
