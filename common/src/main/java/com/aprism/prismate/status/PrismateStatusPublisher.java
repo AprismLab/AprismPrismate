@@ -47,6 +47,14 @@ public final class PrismateStatusPublisher {
     /** The fixed file name published under the game directory. */
     public static final String FILE_NAME = "aprism-status.json";
 
+    /**
+     * Upper bound for per-unit failure text in the machine-readable document
+     * (v26.9-Alpha.1). Full, untruncated chains remain in
+     * {@code prismate/reports/load-report.txt}; the status file stays bounded
+     * no matter how deep a mod's exception chain runs.
+     */
+    public static final int MAX_FAILURE_CHARS = 512;
+
     /** Shared Gson instance; the document is small so pretty printing is free. */
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -92,7 +100,7 @@ public final class PrismateStatusPublisher {
                 unit.put("loaderKey", loaderKey == null ? "" : loaderKey);
                 unit.put("state", entry.status() == null ? "" : entry.status().name());
                 if (entry.failure() != null && !entry.failure().isBlank()) {
-                    unit.put("failure", entry.failure());
+                    unit.put("failure", bound(entry.failure()));
                 }
                 units.add(unit);
                 if (entry.status() == PrismateLoadReport.Entry.Status.FAILED) {
@@ -110,6 +118,20 @@ public final class PrismateStatusPublisher {
         doc.put("failureCount", failureCount);
         doc.put("units", units);
         return doc;
+    }
+
+    /**
+     * Bounds a failure string for the machine-readable document: over-long
+     * chains are truncated with an explicit ellipsis marker so tooling can
+     * tell truncation from content.
+     */
+    private static String bound(String failure) {
+        if (failure.length() <= MAX_FAILURE_CHARS) {
+            return failure;
+        }
+        return failure.substring(0, MAX_FAILURE_CHARS)
+                + "...[truncated " + (failure.length() - MAX_FAILURE_CHARS)
+                + " chars; full chain in load-report.txt]";
     }
 
     /**

@@ -86,9 +86,11 @@ class PrismateStatusPublisherAdversarialTest {
         @Test
         @DisplayName("an enormous failure chain does not break the document")
         void enormousFailureChain() throws Exception {
-            // Simulate the fullChain renderer: a deeply nested exception chain.
+            // A moderately deep chain (within the v26.9 bound): round-trips
+            // losslessly. Over-bound truncation is covered by the dedicated
+            // bounded-payload test below.
             StringBuilder chain = new StringBuilder();
-            for (int i = 0; i < 500; i++) {
+            for (int i = 0; i < 10; i++) {
                 chain.append("java.lang.RuntimeException: layer ").append(i).append(" -> ");
             }
             chain.append("root cause with \"quotes\" and \\backslash\\");
@@ -108,8 +110,34 @@ class PrismateStatusPublisherAdversarialTest {
                     (List<Map<String, Object>>) (Object) readBack.get("units");
             assertThat((String) units.get(0).get("failure"))
                     .startsWith("java.lang.RuntimeException: layer 0")
-                    .contains("layer 499")
+                    .contains("layer 9")
                     .endsWith("root cause with \"quotes\" and \\backslash\\");
+        }
+
+        @Test
+        @DisplayName("v26.9-Alpha.1: failure text is bounded in status units with an explicit truncation marker")
+        void failureTextIsBoundedInStatusUnits() throws Exception {
+            StringBuilder chain = new StringBuilder();
+            for (int i = 0; i < 2000; i++) {
+                chain.append("layer ").append(i).append(' ');
+            }
+            PrismateLoadReport report = new PrismateLoadReport();
+            report.recordFailure("lifecycle", "boommod", null, "1.0.0", 0,
+                    chain.toString());
+
+            Map<String, Object> snap = PrismateStatusPublisher.buildSnapshot(
+                    "v", "a", "Fa", "26.2", "LOADED", report);
+            Path published = PrismateStatusPublisher.publish(tempDir, snap);
+
+            Map<String, Object> readBack = GSON.fromJson(Files.readString(published),
+                    new TypeToken<Map<String, Object>>() { }.getType());
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> units =
+                    (List<Map<String, Object>>) (Object) readBack.get("units");
+            String failure = (String) units.get(0).get("failure");
+            assertThat(failure.length())
+                    .isLessThanOrEqualTo(PrismateStatusPublisher.MAX_FAILURE_CHARS + 80);
+            assertThat(failure).contains("[truncated").contains("load-report.txt]");
         }
     }
 
