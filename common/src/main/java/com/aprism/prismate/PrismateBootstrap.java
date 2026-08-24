@@ -1,6 +1,7 @@
 package com.aprism.prismate;
 
 import java.nio.file.Path;
+import java.util.Map;
 
 import com.aprism.api.AprismPhase;
 import com.aprism.prismate.config.PrismateConfig;
@@ -52,6 +53,7 @@ public final class PrismateBootstrap {
     private final HostBridge bridge;
     private EmbeddedRuntime runtime;
     private BootOutcome bootOutcome;
+    private long bootNanos;
 
     /**
      * @param bridge the host loader bridge
@@ -100,6 +102,7 @@ public final class PrismateBootstrap {
                 + " (embedded Aprism " + PrismateVersion.embeddedAprismVersion()
                 + ", Minecraft " + bridge.minecraftVersion() + ", side " + bridge.side() + ")");
         runtime = EmbeddedRuntime.create(bridge, config);
+        bootNanos = System.nanoTime();
         try {
             runtime.boot();
             bootOutcome = BootOutcome.OK;
@@ -109,6 +112,18 @@ public final class PrismateBootstrap {
             publishOutcome(bootOutcome);
         }
         return bootOutcome;
+    }
+
+    /**
+     * Enriches a status snapshot with bridge-operational fields
+     * (v26.9-Alpha.2 monotonic additions): uptime, delivered tick count, and
+     * the degraded-mode flag.
+     */
+    private void enrich(Map<String, Object> snapshot) {
+        snapshot.put("uptimeMs",
+                bootNanos == 0 ? 0L : (System.nanoTime() - bootNanos) / 1_000_000);
+        snapshot.put("deliveredTicks", runtime == null ? 0L : runtime.getDeliveredTickCount());
+        snapshot.put("degraded", runtime != null && runtime.isDegraded());
     }
 
     /**
@@ -191,11 +206,12 @@ public final class PrismateBootstrap {
         // status file (phase=LOADED) so external tools diagnose the bridge
         // without parsing logs.
         try {
-            var snapshot = PrismateStatusPublisher.buildSnapshot(
+            Map<String, Object> snapshot = PrismateStatusPublisher.buildSnapshot(
                     PrismateVersion.prismateVersion(),
                     PrismateVersion.embeddedAprismVersion(),
                     bridge.loaderKey(), bridge.minecraftVersion(),
                     "LOADED", runtime.getReport());
+            enrich(snapshot);
             Path statusFile = PrismateStatusPublisher.publish(bridge.gameDir(), snapshot);
             if (statusFile != null) {
                 bridge.log("Prismate status published to " + statusFile);
@@ -213,11 +229,12 @@ public final class PrismateBootstrap {
     public void shutdown() {
         if (runtime != null) {
             try {
-                var snapshot = PrismateStatusPublisher.buildSnapshot(
+                Map<String, Object> snapshot = PrismateStatusPublisher.buildSnapshot(
                         PrismateVersion.prismateVersion(),
                         PrismateVersion.embeddedAprismVersion(),
                         bridge.loaderKey(), bridge.minecraftVersion(),
                         "SHUTDOWN", runtime.getReport());
+                enrich(snapshot);
                 PrismateStatusPublisher.publish(bridge.gameDir(), snapshot);
             } catch (RuntimeException e) {
                 bridge.log("Could not refresh the status file: " + e);

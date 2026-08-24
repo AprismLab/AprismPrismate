@@ -454,8 +454,18 @@ public final class EmbeddedRuntime {
 
     private boolean tickingStarted;
     private boolean tickingAvailable;
+    private long deliveredTickCount;
+
+    /**
+     * @return how many GameTickEvents this runtime has delivered
+     *         (v26.9-Alpha.2 diagnostics enrichment)
+     */
+    public long getDeliveredTickCount() {
+        return deliveredTickCount;
+    }
 
     private void onHostTick(long tickNumber) {
+        deliveredTickCount++;
         try {
             eventBus.post(new com.aprism.api.gameevent.GameTickEvent(
                     com.aprism.api.gameevent.GameTickEvent.Stage.END, tickNumber));
