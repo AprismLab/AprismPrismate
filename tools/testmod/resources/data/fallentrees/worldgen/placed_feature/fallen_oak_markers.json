@@ -1,9 +1,9 @@
 {
-  "feature": "fallentrees:fallen_oak_marker",
+  "feature": "fallentrees:fallen_oak",
   "placement": [
     {
       "type": "minecraft:rarity_filter",
-      "chance": 2
+      "chance": 3
     },
     {
       "type": "minecraft:in_square"
