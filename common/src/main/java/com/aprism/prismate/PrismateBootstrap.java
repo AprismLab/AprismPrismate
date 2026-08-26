@@ -127,6 +127,31 @@ public final class PrismateBootstrap {
     }
 
     /**
+     * Periodic status refresh driven by the host-tick bridge
+     * (v26.12-A2): republishes the LOADED snapshot every
+     * {@link EmbeddedRuntime#STATUS_REFRESH_INTERVAL_TICKS} ticks so
+     * deliveredTicks/uptime stay live. Fail-safe; never throws into the
+     * tick loop.
+     */
+    public void refreshStatusIfDue() {
+        if (runtime == null || !runtime.shouldRefreshStatus()) {
+            return;
+        }
+        try {
+            Map<String, Object> snapshot = PrismateStatusPublisher.buildSnapshot(
+                    PrismateVersion.prismateVersion(),
+                    PrismateVersion.embeddedAprismVersion(),
+                    bridge.loaderKey(), bridge.minecraftVersion(),
+                    "LOADED", runtime.getReport());
+            enrich(snapshot);
+            PrismateStatusPublisher.publish(bridge.gameDir(), snapshot);
+            runtime.markStatusRefreshed();
+        } catch (RuntimeException e) {
+            bridge.log("Periodic status refresh failed: " + e);
+        }
+    }
+
+    /**
      * Publishes the machine-readable status file with the boot outcome as
      * the phase (v26.6-Alpha.1 MDL deep integration): a refused or failed
      * boot is diagnosable from aprism-status.json without parsing logs.
@@ -168,6 +193,8 @@ public final class PrismateBootstrap {
         // start delivering host ticks as GameTickEvents to loaded mods.
         if (runtime.startTicking()) {
             bridge.log("Host tick hook active; GameTickEvents will be delivered");
+            // v26.12-A2: periodic status refresh wired into the tick path.
+            runtime.setStatusRefresher(this::refreshStatusIfDue);
         }
     }
 

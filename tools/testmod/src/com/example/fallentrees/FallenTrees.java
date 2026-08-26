@@ -92,5 +92,12 @@ public class FallenTrees implements IAprismMod {
     public void onComplete(AprismContext context) {
         System.out.println(MARKER + " COMPLETE fallen-trees ready"
                 + " (ticks observed so far: " + tickCount + ")");
+        // v26.12-A1: the deterministic placement check is driven externally
+        // (RCON 'execute positioned X Y Z run place feature ...'), after which
+        // the spawned logs are verified by inspecting the world via the same
+        // server console ('execute if block' probes) - see FACT 5m. The mod's
+        // own tick callback stays observer-only to keep this loader-neutral.
+        System.out.println(MARKER + " COMPLETE placement verification window open;"
+                + " awaiting RCON 'place feature fallentrees:fallen_oak_markers'");
     }
 }

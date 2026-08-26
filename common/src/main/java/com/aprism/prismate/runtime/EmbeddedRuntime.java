@@ -455,6 +455,7 @@ public final class EmbeddedRuntime {
     private boolean tickingStarted;
     private boolean tickingAvailable;
     private long deliveredTickCount;
+    private long lastRefreshTick;
 
     /**
      * @return how many GameTickEvents this runtime has delivered
@@ -462,6 +463,30 @@ public final class EmbeddedRuntime {
      */
     public long getDeliveredTickCount() {
         return deliveredTickCount;
+    }
+
+    /**
+     * The tick interval at which {@link PrismateBootstrap} refreshes the
+     * machine-readable status file (v26.12-A2): every 600 ticks (~30s at
+     * 20 TPS) so operators see live deliveredTicks/uptime without waiting
+     * for shutdown.
+     */
+    public static final long STATUS_REFRESH_INTERVAL_TICKS = 600;
+
+    /**
+     * @return whether this tick should trigger a periodic status refresh
+     *         (every {@link #STATUS_REFRESH_INTERVAL_TICKS} ticks)
+     */
+    public boolean shouldRefreshStatus() {
+        return tickingAvailable
+                && deliveredTickCount - lastRefreshTick >= STATUS_REFRESH_INTERVAL_TICKS;
+    }
+
+    /**
+     * Marks the status refresh checkpoint after a republish.
+     */
+    public void markStatusRefreshed() {
+        lastRefreshTick = deliveredTickCount;
     }
 
     private void onHostTick(long tickNumber) {
@@ -474,6 +499,24 @@ public final class EmbeddedRuntime {
             java.util.logging.Logger.getLogger("prismate")
                     .warning("GameTickEvent listener threw; isolated: " + e);
         }
+        // v26.12-A2: notify the bootstrap so it can refresh the status file
+        // on its own cadence (checked via shouldRefreshStatus).
+        if (bootstrapStatusRefresher != null) {
+            bootstrapStatusRefresher.run();
+        }
+    }
+
+    /** Set by PrismateBootstrap; runs the periodic status refresh check. */
+    private Runnable bootstrapStatusRefresher;
+
+    /**
+     * Wires the periodic status-refresh check into the tick path
+     * (called once by PrismateBootstrap after boot).
+     *
+     * @param refresher the refresh check runnable
+     */
+    public void setStatusRefresher(Runnable refresher) {
+        this.bootstrapStatusRefresher = refresher;
     }
 
     /**
