@@ -55,6 +55,7 @@ public final class NeoForgeEntrypoint {
             modBus.addListener(FMLClientSetupEvent.class, this::onClientSetup);
             modBus.addListener(FMLDedicatedServerSetupEvent.class, this::onServerSetup);
             modBus.addListener(FMLLoadCompleteEvent.class, this::onLoadComplete);
+            registerServerStoppingHook();
         } catch (Throwable t) {
             // NeoForge shows fatal errors in a GUI dialog that is invisible
             // from a console harness; mirror the failure to stderr so the
@@ -76,5 +77,39 @@ public final class NeoForgeEntrypoint {
     private void onLoadComplete(FMLLoadCompleteEvent event) {
         bootstrap.dispatchComplete();
         bootstrap.logReport();
+    }
+
+    /**
+     * Registers the server-stopping hook on the GLOBAL NeoForge bus
+     * (v26.10-Alpha.2). ServerStoppingEvent lives on the game bus, not the
+     * mod-scoped bus, and the full neoforge jar is not a compile dependency,
+     * so the registration is reflective — consistent with the bridge style.
+     * Without this, bootstrap.shutdown() never runs on a dedicated server:
+     * the status file stays LOADED forever and the fallback classloader
+     * leaks until process exit (live-found on the first server matrix run).
+     */
+    private void registerServerStoppingHook() {
+        try {
+            Class<?> neoForge = Class.forName("net.neoforged.neoforge.common.NeoForge");
+            Object eventBus = neoForge.getField("EVENT_BUS").get(null);
+            Class<?> stoppingEvent = Class.forName(
+                    "net.neoforged.neoforge.event.server.ServerStoppingEvent");
+            Class<?> iEventBus = Class.forName("net.neoforged.bus.api.IEventBus");
+            java.lang.reflect.Method addListener = iEventBus.getMethod(
+                    "addListener", Class.class, java.util.function.Consumer.class);
+            Object consumerProxy = java.lang.reflect.Proxy.newProxyInstance(
+                    getClass().getClassLoader(),
+                    new Class<?>[]{java.util.function.Consumer.class},
+                    (p, method, args) -> {
+                        if (method.getName().equals("accept")) {
+                            bootstrap.shutdown();
+                        }
+                        return null;
+                    });
+            addListener.invoke(eventBus, stoppingEvent, consumerProxy);
+            LOG.info("Server-stopping hook registered; shutdown will publish SHUTDOWN status");
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            LOG.warning("Could not register the server-stopping hook: " + e);
+        }
     }
 }

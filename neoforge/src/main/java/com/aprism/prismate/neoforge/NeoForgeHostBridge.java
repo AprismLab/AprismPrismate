@@ -178,17 +178,20 @@ public final class NeoForgeHostBridge implements HostBridge {
 
     @Override
     public boolean registerTickHook(com.aprism.prismate.host.HostTickListener listener) {
-        // v26.8-Alpha.1 loader-symmetric ticks: register on NeoForge's game
-        // bus for ClientTickEvent$Post (FML 11 split tick events into Pre/Post
-        // subclasses). Reached reflectively via the PUBLIC IEventBus interface
-        // and the JDK Consumer functional type - the impl class's own methods
-        // are not reflectively accessible, and the full neoforge jar is not a
-        // compile dependency.
+        // v26.8-A1 (client) + v26.10-A2 (server): register on NeoForge's game
+        // bus for the side-appropriate tick event's Post subclass —
+        // ClientTickEvent$Post on the client, ServerTickEvent$Post on a
+        // dedicated server. Reached reflectively via the PUBLIC IEventBus
+        // interface and the JDK Consumer functional type; the impl class's
+        // own methods are not reflectively accessible, and the full neoforge
+        // jar is not a compile dependency.
         try {
+            String tickEventName = side() == EnvSide.CLIENT
+                    ? "net.neoforged.neoforge.client.event.ClientTickEvent$Post"
+                    : "net.neoforged.neoforge.event.tick.ServerTickEvent$Post";
             Class<?> neoForge = Class.forName("net.neoforged.neoforge.common.NeoForge");
             Object eventBus = neoForge.getField("EVENT_BUS").get(null);
-            Class<?> postEvent = Class.forName(
-                    "net.neoforged.neoforge.client.event.ClientTickEvent$Post");
+            Class<?> postEvent = Class.forName(tickEventName);
             Class<?> iEventBus = Class.forName("net.neoforged.bus.api.IEventBus");
             java.lang.reflect.Method addListener = iEventBus.getMethod(
                     "addListener", Class.class, java.util.function.Consumer.class);
@@ -215,7 +218,7 @@ public final class NeoForgeHostBridge implements HostBridge {
                         }
                     });
             addListener.invoke(eventBus, postEvent, consumerProxy);
-            LOG.info("Host tick hook registered (NeoForge ClientTickEvent$Post)");
+            LOG.info("Host tick hook registered (" + tickEventName + ")");
             return true;
         } catch (java.lang.reflect.InvocationTargetException e) {
             Throwable root = e;
