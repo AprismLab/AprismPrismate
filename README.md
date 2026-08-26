@@ -107,3 +107,11 @@ An \.aje\ mod may skip the \entrypoints\ map entirely: classes annotated
 lifecycle completes, Prismate delivers one \GameTickEvent(END)\ per host game
 tick through the shared event bus (v26.7 host-tick bridge), so mods can drive
 per-tick logic identically under Prismate.
+
+## Dedicated Server Support (v26.10+)
+
+Prismate's NeoForge bridge is verified on real DEDICATED_SERVER instances:
+SERVER lifecycle dispatch, side-appropriate tick delivery
+(ServerTickEvent$Post), graceful shutdown publishing the final status
+snapshot (phase=SHUTDOWN with delivered tick counts), and headless status
+publishing. Client and server are first-class equal citizens.

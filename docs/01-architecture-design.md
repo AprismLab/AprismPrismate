@@ -1,7 +1,7 @@
 # AprismPrismate Architecture Design
 
 > Document 1 of 2 | AprismPrismate Documentation Set
-> Version: v26.8-Alpha.3 | Status: Implemented (official; ticks loader-symmetric, all surfaces live-verified)
+> Version: v26.10-Alpha.3 | Status: Implemented (official; CLIENT + DEDICATED_SERVER both live-verified end to end)
 > Author: BlockConnect@StarsailsClover
 > Canonical language: English (Chinese summary in README.zh-CN.md)
 
@@ -372,6 +372,7 @@ were resolved against the pinned loader versions with real-game verification
    upstream Aprism lowering its API baseline.
 
 End of document.
+
 
 
 
