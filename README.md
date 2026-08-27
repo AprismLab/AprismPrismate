@@ -89,6 +89,17 @@ Refused boots publish their outcome (`AGENT_CONFLICT`, `DISABLED`,
 `VERSION_UNSUPPORTED`, `BOOT_FAILED`) as the phase, so a failed boot is
 machine-diagnosable without parsing game logs.
 
+## Extension Pack Boundary (v26.13+)
+
+Prismate loads Aprism-native `.aje` mods only. It deliberately ignores Aprism
+Extension Packs (`.aep`) in a host loader's `mods/` directory: extensions
+enhance the Aprism agent and are loaded from `aprism-extensions/` by the agent
+runtime, not by Prismate. This includes the optional
+`aprismwarp.editor.json` catalog introduced for AprismWarp editors
+(`aprismwarp.aep-editor/v1`); the catalog is editor-only and never executed
+by Aprism or Prismate. An `.aep` can coexist beside `.aje` files without
+discovery warnings or load attempts.
+
 - **NeoForge is 26.x‑only** for v26.6: the bridge targets FML 11; NeoForge 1.20.2�?.21.x runs FML 2�? (a different API) and is out of scope. The Fabric bridge covers those segments.
 - **Forge (classic) is a stub** that refuses to boot with a named error (deferred post�?.0).
 - **Java runtime floor is 21**, not the 1.20/1.21 official Java 17: the embedded Aprism API is Java 21 bytecode (upstream Aprism compiles at `--release 21`). `fabric.mod.json` keeps `java: ">=21"` so the loader never installs Prismate into a Java�?7 profile. MC 1.20+ is forward‑compatible with newer JVMs, so 1.20.x/1.21.x run under Java 21.
@@ -102,9 +113,9 @@ Place Prismate into your host loader’s `mods/` folder, then drop Aprism `.aje`
 
 ## Annotation Entrypoints + Game Ticks (v26.5+ / v26.7+)
 
-An \.aje\ mod may skip the \entrypoints\ map entirely: classes annotated
-\@AprismMod\ are discovered by Prismate's ASM scan fallback (v26.5). After the
-lifecycle completes, Prismate delivers one \GameTickEvent(END)\ per host game
+An `.aje` mod may skip the `entrypoints` map entirely: classes annotated
+`@AprismMod` are discovered by Prismate's ASM scan fallback (v26.5). After the
+lifecycle completes, Prismate delivers one `GameTickEvent(END)` per host game
 tick through the shared event bus (v26.7 host-tick bridge), so mods can drive
 per-tick logic identically under Prismate.
 

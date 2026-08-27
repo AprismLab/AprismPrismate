@@ -90,6 +90,25 @@ class AjeDiscoveryTest {
         }
 
         @Test
+        @DisplayName("ignores an AEP with the optional AprismWarp editor catalog")
+        void ignoresAepEditorCatalog() throws Exception {
+            TestFixtures.writeZip(tempDir.resolve("editor-support.aep"), Map.of(
+                    "aprism.extension.json", "{\"extensionId\":\"editor-support\"}".getBytes(),
+                    "aprismwarp.editor.json", """
+                            {"schema":"aprismwarp.aep-editor/v1","extensionId":"editor-support"}
+                            """.getBytes(),
+                    "extension.jar", TestFixtures.jarBytes(Map.of("dummy.txt", "x".getBytes()))));
+            writePack("native.aje", "nativemod", "*");
+
+            List<AjeDiscovery.DiscoveredAje> found =
+                    discovery.discover(List.of(tempDir), EnvSide.CLIENT, failures);
+
+            assertThat(found).hasSize(1);
+            assertThat(found.get(0).manifest().id()).isEqualTo("nativemod");
+            assertThat(failures).isEmpty();
+        }
+
+        @Test
         @DisplayName("scans multiple directories and dedupes by path order")
         void scansMultipleDirectories() throws Exception {
             Path other = tempDir.resolve("other");

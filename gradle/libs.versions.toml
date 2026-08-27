@@ -4,7 +4,7 @@
 
 [versions]
 # Embedded Aprism core (same minor line as Prismate itself)
-aprism = "v26.6"
+aprism = "v26.13"
 
 # Minecraft / host loaders
 minecraft = "26.2"
