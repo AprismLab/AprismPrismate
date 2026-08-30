@@ -176,10 +176,25 @@ public final class PrismateBootstrap {
             enrich(snapshot);
             PrismateStatusPublisher.publish(bridge.gameDir(), snapshot);
             runtime.markStatusRefreshed();
+            refreshFailureLogged = false;
         } catch (RuntimeException e) {
-            bridge.log("Periodic status refresh failed: " + e);
+            // v26.15-A1 alert dedup: a persistently-failing publish (read-only
+            // game dir, disk full, AV lock) logs ONE warning per boot at INFO-
+            // visible level; later failures drop to FINE so a 30-second
+            // refresh cadence does not spam the operator log.
+            if (!refreshFailureLogged) {
+                bridge.log("Periodic status refresh failed (further failures logged"
+                        + " at FINE until a refresh succeeds): " + e);
+                refreshFailureLogged = true;
+            } else {
+                java.util.logging.Logger.getLogger("prismate")
+                        .fine("Periodic status refresh failed again: " + e);
+            }
         }
     }
+
+    /** Boot-scoped dedup flag for the periodic-refresh failure warning. */
+    private boolean refreshFailureLogged;
 
     /**
      * Publishes the machine-readable status file with the boot outcome as

@@ -78,3 +78,52 @@ bridge candidate or blocked on upstream moving the access point to context.
   the bridge (reflective use of loader-core's installer against extracted jars).
 - **TOOLING**: fabric-26.2 Despotes build for in-world visual verification of
   worldgen content.
+
+
+---
+
+## Appendix A - aprism.status/v1 Field Catalog (normative, v26.15)
+
+Every field in the machine-readable status document, normative as of
+v26.15. All fields are additive-only per the monotonic contract; consumers
+must tolerate unknown fields.
+
+| Field | Type | Since | Meaning |
+|---|---|---|---|
+| schemaVersion | string | v26.6 | Always \prism.status/v1\. |
+| publisher | string | v26.6 | \prismate\ (or absent when the agent published). |
+| aprismVersion | string | v26.6 | Embedded Aprism core version. |
+| prismateVersion | string | v26.6 | Running Prismate version. |
+| loaderKey | string | v26.6 | Host loader key: \Fa\/\N\/\Fo\. |
+| mcEdit | string | v26.6 | Always \JE\. |
+| mcVersion | string | v26.6 | Running Minecraft version (runtime-probed). |
+| generatedAt | string | v26.6 | ISO-8601 instant. |
+| phase | string | v26.6 | \LOADED\/\SHUTDOWN\, or a boot-outcome name for refused boots. |
+| okCount | number | v26.6 | Units in OK state. |
+| failureCount | number | v26.6 | Units in FAILED state. |
+| units[] | array | v26.6 | Per-unit load outcomes. |
+| units[].kind | string | v26.6 | Report stage (extraction/classpath/dependency/lifecycle). |
+| units[].id | string | v26.6 | Mod or unit id. |
+| units[].version | string | v26.6 | Unit version. |
+| units[].loaderKey | string | v26.6 | Host loader key. |
+| units[].state | string | v26.6 | \OK\/\FAILED\. |
+| units[].failure | string | v26.15 | Refusal reason; bounded at 512 chars with an explicit truncation marker (full chain in load-report.txt). |
+| units[].durationMs | number | v26.6 | Stage duration in milliseconds. |
+| deliveredTicks | number | v26.9 | GameTickEvents delivered by this runtime. |
+| uptimeMs | number | v26.9 | Milliseconds since successful boot. |
+| degraded | boolean | v26.9 | Host classpath injection unavailable (managed-classloader mode). |
+| environment.loader | string | v26.14 | Host loader key. |
+| environment.side | string | v26.14 | \CLIENT\/\DEDICATED_SERVER\. |
+| environment.javaVersion | string | v26.14 | \java.version\. |
+| environment.osName | string | v26.14 | \os.name\. |
+| environment.osArch | string | v26.14 | \os.arch\. |
+| tickRate | number | v26.14 | Mean ticks/sec over the last refresh interval; omitted on the first publish after boot. |
+
+### Refresh cadence
+
+- \LOADED\ snapshot: published after the load report.
+- Periodic refresh: every 600 ticks (~30 s at 20 TPS) once the tick hook is
+  active; a failing publish logs one warning per boot (v26.15 dedup) and
+  drops further failures to FINE.
+- \SHUTDOWN\ snapshot: published on graceful shutdown (ServerStoppingEvent on
+  NeoForge; host-exit hooks on Fabric).
