@@ -489,6 +489,15 @@ public final class EmbeddedRuntime {
         lastRefreshTick = deliveredTickCount;
     }
 
+    /**
+     * Test-only: forces the next {@code shouldRefreshStatus()} to return true
+     * by rewinding the refresh checkpoint, so dedup semantics can be
+     * exercised without a live 600-tick wait.
+     */
+    public void forceStatusRefreshForTest() {
+        lastRefreshTick = deliveredTickCount - STATUS_REFRESH_INTERVAL_TICKS;
+    }
+
     private void onHostTick(long tickNumber) {
         deliveredTickCount++;
         try {

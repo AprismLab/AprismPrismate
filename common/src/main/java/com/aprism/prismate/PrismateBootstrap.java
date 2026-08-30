@@ -174,27 +174,54 @@ public final class PrismateBootstrap {
                     bridge.loaderKey(), bridge.minecraftVersion(),
                     "LOADED", runtime.getReport());
             enrich(snapshot);
-            PrismateStatusPublisher.publish(bridge.gameDir(), snapshot);
+            Path published = PrismateStatusPublisher.publish(bridge.gameDir(), snapshot);
+            // v26.15-A1 (live-found): publish() is fail-safe and returns null
+            // on failure instead of throwing - the original catch-block-only
+            // dedup never fired because failures never reached it. Treat a
+            // null result as a failure explicitly.
+            if (published == null) {
+                handleRefreshFailure(new RuntimeException(
+                        "status publish returned null (IO failure)"));
+                return;
+            }
             runtime.markStatusRefreshed();
             refreshFailureLogged = false;
         } catch (RuntimeException e) {
-            // v26.15-A1 alert dedup: a persistently-failing publish (read-only
-            // game dir, disk full, AV lock) logs ONE warning per boot at INFO-
-            // visible level; later failures drop to FINE so a 30-second
-            // refresh cadence does not spam the operator log.
-            if (!refreshFailureLogged) {
-                bridge.log("Periodic status refresh failed (further failures logged"
-                        + " at FINE until a refresh succeeds): " + e);
-                refreshFailureLogged = true;
-            } else {
-                java.util.logging.Logger.getLogger("prismate")
-                        .fine("Periodic status refresh failed again: " + e);
-            }
+            handleRefreshFailure(e);
+        }
+    }
+
+    /**
+     * v26.15-A1 alert dedup: a persistently-failing publish (read-only game
+     * dir, disk full, AV lock) logs ONE warning per boot; later failures
+     * drop to FINE so a 30-second refresh cadence does not spam the
+     * operator log. A successful refresh resets the flag.
+     */
+    private void handleRefreshFailure(RuntimeException e) {
+        if (!refreshFailureLogged) {
+            bridge.log("Periodic status refresh failed (further failures logged"
+                    + " at FINE until a refresh succeeds): " + e);
+            refreshFailureLogged = true;
+        } else {
+            java.util.logging.Logger.getLogger("prismate")
+                    .fine("Periodic status refresh failed again: " + e);
         }
     }
 
     /** Boot-scoped dedup flag for the periodic-refresh failure warning. */
     private boolean refreshFailureLogged;
+
+    /**
+     * Test-only: forces one refresh attempt bypassing the 600-tick due gate,
+     * so dedup semantics can be exercised without a live tick loop.
+     */
+    public void refreshStatusForTest() {
+        if (runtime == null) {
+            return;
+        }
+        runtime.forceStatusRefreshForTest();
+        refreshStatusIfDue();
+    }
 
     /**
      * Publishes the machine-readable status file with the boot outcome as

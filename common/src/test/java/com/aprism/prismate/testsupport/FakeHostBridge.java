@@ -16,7 +16,7 @@ import com.aprism.prismate.host.HostBridge;
  */
 public final class FakeHostBridge implements HostBridge {
 
-    private final Path gameDir;
+    private Path gameDir;
     private final boolean injectionWorks;
     private final EnvSide side;
     private String mcVersion = "26.2";
@@ -75,6 +75,16 @@ public final class FakeHostBridge implements HostBridge {
     @Override
     public Path gameDir() {
         return gameDir;
+    }
+
+    /**
+     * Re-points the fake game directory mid-test (used by dedup tests to
+     * flip the publish target from failing to healthy).
+     *
+     * @param newGameDir the replacement game directory
+     */
+    public void setGameDir(Path newGameDir) {
+        this.gameDir = newGameDir;
     }
 
     @Override
