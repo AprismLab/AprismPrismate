@@ -1,7 +1,7 @@
 # AprismPrismate Developer Guide
 
 > Document 2 of 2 | AprismPrismate Documentation Set
-> Version: v26.14-Alpha.1 | Status: Implemented (official)
+> Version: v26.15-Alpha.1 | Status: Implemented (official)
 > Author: BlockConnect@StarsailsClover
 > Canonical language: English
 
@@ -145,6 +145,7 @@ Accepts: a signed, checksummed Pre-Release publishes per-loader artifacts.
   perform injection in the EARLIEST host entrypoint available.
 
 End of guide.
+
 
 
 
