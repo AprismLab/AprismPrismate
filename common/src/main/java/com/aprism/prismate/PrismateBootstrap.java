@@ -54,6 +54,11 @@ public final class PrismateBootstrap {
     private EmbeddedRuntime runtime;
     private BootOutcome bootOutcome;
     private long bootNanos;
+    // v26.14-A1: sample points for the live tick-rate (ticks/sec) field in the
+    // machine-readable status document. Updated each time the snapshot is
+    // enriched so the per-interval rate is fresh at every publish.
+    private long lastRefreshTickCount = -1L;
+    private long lastRefreshNanos;
 
     /**
      * @param bridge the host loader bridge
@@ -118,12 +123,37 @@ public final class PrismateBootstrap {
      * Enriches a status snapshot with bridge-operational fields
      * (v26.9-Alpha.2 monotonic additions): uptime, delivered tick count, and
      * the degraded-mode flag.
+     * v26.14-Alpha.1 adds: environment fingerprint (loader/OS/JVM) and
+     * live tick-rate (ticks/sec since last refresh) for operator diagnostics.
      */
     private void enrich(Map<String, Object> snapshot) {
         snapshot.put("uptimeMs",
                 bootNanos == 0 ? 0L : (System.nanoTime() - bootNanos) / 1_000_000);
-        snapshot.put("deliveredTicks", runtime == null ? 0L : runtime.getDeliveredTickCount());
+        long currentTicks = runtime == null ? 0L : runtime.getDeliveredTickCount();
+        snapshot.put("deliveredTicks", currentTicks);
         snapshot.put("degraded", runtime != null && runtime.isDegraded());
+        // v26.14-A1: environment fingerprint — static, consistent within a
+        // session; added every publish so tooling gets it without re-reading.
+        snapshot.put("environment", Map.of(
+                "loader", bridge.loaderKey(),
+                "side", bridge.side().name(),
+                "javaVersion", System.getProperty("java.version", "unknown"),
+                "osName", System.getProperty("os.name", "unknown"),
+                "osArch", System.getProperty("os.arch", "unknown")
+        ));
+        // v26.14-A1: live tick-rate (ticks/sec) since the last refresh
+        // interval. The first publish after boot has no prior sample; skip
+        // the field rather than reporting a spurious zero or NaN.
+        long nowNanos = System.nanoTime();
+        if (lastRefreshTickCount >= 0) {
+            long elapsedSec = (nowNanos - lastRefreshNanos) / 1_000_000_000;
+            if (elapsedSec > 0) {
+                double rate = (currentTicks - lastRefreshTickCount) / (double) elapsedSec;
+                snapshot.put("tickRate", Math.round(rate * 100.0) / 100.0);
+            }
+        }
+        lastRefreshTickCount = currentTicks;
+        lastRefreshNanos = nowNanos;
     }
 
     /**
