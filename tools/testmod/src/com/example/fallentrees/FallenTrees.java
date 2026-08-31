@@ -86,6 +86,26 @@ public class FallenTrees implements IAprismMod {
                 + " fallenOakCfg=" + (cl.getResource(cfg) != null)
                 + " placed=" + (cl.getResource(placed) != null)
                 + " forestOverride=" + (cl.getResource(biome) != null));
+
+        // v26.17-A1 content-binding reachability probe: can the entrypoint
+        // classloader see MC's registry system? This determines whether a
+        // Prismate-loaded .aje can programmatically register items/blocks.
+        String[] mcClasses = {
+                "net.minecraft.core.registries.BuiltInRegistries",
+                "net.minecraft.core.Registry",
+                "net.minecraft.resources.Identifier",
+                "net.minecraft.world.item.Item",
+                "net.minecraft.world.level.block.Block"
+        };
+        for (String mcClass : mcClasses) {
+            try {
+                Class.forName(mcClass, false, cl);
+                System.out.println(MARKER + " SETUP MC reachability: " + mcClass + " OK");
+            } catch (Throwable t) {
+                System.out.println(MARKER + " SETUP MC reachability: " + mcClass
+                        + " UNREACHABLE (" + t.getClass().getSimpleName() + ")");
+            }
+        }
     }
 
     @Override
