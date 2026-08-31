@@ -50,7 +50,7 @@ bridge candidate or blocked on upstream moving the access point to context.
 | Surface | Fabric | NeoForge | Notes |
 |---|---|---|---|
 | Classpath injection into host loader | FULL (Knot addToClassPath) | Degraded | FML 11 JPMS has no injection seam (docs 01 §13). |
-| Resource-dir injection (host-visible) | FULL (Knot serves data/assets) | Classloader-level only | Host resource-manager integration remains deferred (docs 01 §13 issue 2). |
+| Resource-dir injection (classloader-visible) | FULL (Knot serves via getResource) | FULL (managed loader serves via getResource) | v26.16 decisive probe: classloader visibility is NOT resource-manager integration. Host ResourceManager (datapack loading) does NOT scan injected resources on EITHER loader — datapack-driven worldgen content in .aje packs requires a host-specific pack-injection mechanism (parked v27 candidate) or programmatic feature registration. |
 | Mixin passthrough | FULL | Refused at runtime | FML 11 seals the Mixin environment post-bootstrap (docs 01 §13 issue 1). |
 | Status publishing (aprism.status/v1) | FULL | FULL | Identical schema/file; one publisher per game root. |
 | Tick delivery (GameTickEvent END) | FULL (ClientTickEvents) | FULL (ServerTickEvent$Post) | Loader-symmetric since v26.10. |
