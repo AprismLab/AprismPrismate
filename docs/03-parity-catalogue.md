@@ -42,7 +42,7 @@ bridge candidate or blocked on upstream moving the access point to context.
 | KeyBindingRegistry (v26.3-A8) | FULL | NONE | Same blocker as CommandRegistration. |
 | NetworkingRegistry (v26.3-A3) | FULL | NONE | Payload construction binds to MC classes; bridge requires the upstream network transport seam. |
 | SettingsAccess (v26.7-A6) | FULL | NONE | **OPEN proposal filed upstream**: add `getSettingsAccess()` to AprismContext (IMC precedent). Persistence lives in loader-core; a Prismate-owned mirror would need the same manifest schema parser (embedded) plus its own store. |
-| Content binding (items/blocks → live registries, v26.7) | FULL | NONE | Driven by loader-core's installer during agent loads. Prismate would need to invoke the binder reflectively against its own extracted jars — candidate for the next line. |
+| Content binding (items/blocks → live registries, v26.7/v26.17) | FULL | NONE | v26.17-A1 decisive probe: ALL MC core classes (BuiltInRegistries, Registry, Identifier, Item, Block) are classloader-reachable from a Prismate-loaded .aje mod on Fabric. Classloader barrier removed. Remaining gap: loader-specific registration API (Fabric BiomeModification etc.) — reflective bridge via AprismContext now viable. |
 | Deep API line (bytecode hooks, JvmInsight, NativeBridge, HardwareRegistry, CrossLanguageRuntime, AprismateAgent) | Contract only | NONE | Stock-JVM contract + registries (Doc 09 item 16); real capabilities require AprismJDK. Not a Prismate concern until the JDK line matures. |
 
 ## Host-integration surfaces (Prismate-specific)
