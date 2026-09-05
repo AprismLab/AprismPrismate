@@ -132,44 +132,185 @@ public class FallenTrees implements IAprismMod {
                 System.out.println(MARKER + "   -> " + m);
             }
 
-            // Discover Identifier constructors
+            // v26.19-A1: discover Identifier static factories (0 public ctors
+            // means the id object must come from a factory method).
             Class<?> resLocClass = Class.forName("net.minecraft.resources.Identifier", true, cl);
-            java.lang.reflect.Constructor<?>[] ctors = resLocClass.getConstructors();
-            System.out.println(MARKER + " SETUP REGISTRY PROOF: Identifier constructors: " + ctors.length);
-            for (java.lang.reflect.Constructor<?> c : ctors) {
-                System.out.println(MARKER + "   -> " + c);
+            Object testId = null;
+            System.out.println(MARKER + " IDRES Identifier factory discovery:");
+            for (java.lang.reflect.Method m : resLocClass.getMethods()) {
+                if (!java.lang.reflect.Modifier.isStatic(m.getModifiers())
+                        || m.getDeclaringClass() != resLocClass) {
+                    continue;
+                }
+                System.out.println(MARKER + "   ID static -> " + m);
+                Class<?>[] p = m.getParameterTypes();
+                try {
+                    if (testId == null && p.length == 2 && p[0] == String.class && p[1] == String.class
+                            && m.getReturnType() == resLocClass) {
+                        testId = m.invoke(null, "fallentrees", "test_item");
+                        System.out.println(MARKER + "   ID created via " + m.getName()
+                                + "(ns,path): " + testId);
+                    }
+                } catch (Throwable ignored) {
+                    // factory not usable with these args; keep scanning
+                }
             }
-
-            // v26.18-A1: attempt actual item registration via reflection
-            // Use Registry.register(Registry, String, Object) overload
-            try {
-                Class<?> itemClass = Class.forName("net.minecraft.world.item.Item", true, cl);
-                Class<?> itemPropsClass = Class.forName("net.minecraft.world.item.Item$Properties", true, cl);
-                java.lang.reflect.Constructor<?> propsCtor = itemPropsClass.getConstructor();
-                Object props = propsCtor.newInstance();
-                java.lang.reflect.Constructor<?> itemCtor = itemClass.getConstructor(itemPropsClass);
-                Object testItem = itemCtor.newInstance(props);
-                System.out.println(MARKER + " SETUP REGISTRY PROOF: Item instance created: "
-                        + testItem.getClass().getName());
-
-                // Register via String overload
-                java.lang.reflect.Method stringRegister = registryClass.getMethod("register",
-                        registryClass, String.class, Object.class);
-                Object result = stringRegister.invoke(null, itemRegistry, "fallentrees:test_item", testItem);
-                System.out.println(MARKER + " SETUP REGISTRY PROOF: Registry.register() INVOKED OK"
-                        + " (result: " + (result != null ? result.getClass().getSimpleName() : "null") + ")");
-                System.out.println(MARKER + " SETUP REGISTRY PROOF: ALL PATHS VERIFIED (reflection bridge viable)");
-            } catch (Throwable t) {
-                System.out.println(MARKER + " SETUP REGISTRY PROOF FAILED: "
-                        + t.getClass().getSimpleName() + ": " + t.getMessage());
-                Throwable cause = t;
-                while ((cause = cause.getCause()) != null) {
-                    System.out.println(MARKER + "   caused by: " + cause.getClass().getSimpleName()
-                            + ": " + cause.getMessage());
-                    if (cause.getStackTrace().length > 0) {
-                        System.out.println(MARKER + "   at " + cause.getStackTrace()[0]);
+            if (testId == null) {
+                for (java.lang.reflect.Method m : resLocClass.getMethods()) {
+                    if (!java.lang.reflect.Modifier.isStatic(m.getModifiers())
+                            || m.getDeclaringClass() != resLocClass) {
+                        continue;
+                    }
+                    Class<?>[] p = m.getParameterTypes();
+                    try {
+                        if (p.length == 1 && p[0] == String.class && m.getReturnType() == resLocClass) {
+                            testId = m.invoke(null, "fallentrees:test_item");
+                            System.out.println(MARKER + "   ID created via " + m.getName()
+                                    + "(joined): " + testId);
+                            break;
+                        }
+                    } catch (Throwable ignored) {
+                        // keep scanning
                     }
                 }
+            }
+            System.out.println(MARKER + " IDRES Identifier instance: " + (testId != null ? "OK" : "NONE"));
+
+            // v26.19-A2 targeted path: ResourceKey.create + Properties.setId.
+            // A1 discovery proved setId(ResourceKey) exists and Identifier is
+            // obtainable via fromNamespaceAndPath; the adaptive fallback below
+            // only runs when this fails (on success it would leave unregistered
+            // intrusive holders that crash registry freeze).
+            boolean targetedOk = false;
+            if (testId != null) {
+                try {
+                    Class<?> rkClass = Class.forName("net.minecraft.resources.ResourceKey", true, cl);
+                    Object itemRegKey;
+                    try {
+                        Class<?> registriesClass = Class.forName("net.minecraft.core.registries.Registries", true, cl);
+                        itemRegKey = registriesClass.getField("ITEM").get(null);
+                        System.out.println(MARKER + " IDRES2 Registries.ITEM resolved: " + itemRegKey);
+                    } catch (Throwable t) {
+                        java.lang.reflect.Method crk = rkClass.getMethod("createRegistryKey", resLocClass);
+                        Object itemsRegId = resLocClass.getMethod("withDefaultNamespace", String.class)
+                                .invoke(null, "item");
+                        itemRegKey = crk.invoke(null, itemsRegId);
+                        System.out.println(MARKER + " IDRES2 Registries.ITEM via createRegistryKey: " + itemRegKey);
+                    }
+                    Object itemKey = rkClass.getMethod("create", rkClass, resLocClass)
+                            .invoke(null, itemRegKey, testId);
+                    System.out.println(MARKER + " IDRES2 item ResourceKey: " + itemKey);
+
+                    Class<?> itemClass = Class.forName("net.minecraft.world.item.Item", true, cl);
+                    Class<?> itemPropsClass = Class.forName("net.minecraft.world.item.Item$Properties", true, cl);
+                    Object props = itemPropsClass.getConstructor().newInstance();
+                    itemPropsClass.getMethod("setId", rkClass).invoke(props, itemKey);
+                    Object testItem = itemClass.getConstructor(itemPropsClass).newInstance(props);
+                    System.out.println(MARKER + " IDRES2 Item constructed with id");
+
+                    java.lang.reflect.Method idRegister = registryClass.getMethod("register",
+                            registryClass, resLocClass, Object.class);
+                    Object result = idRegister.invoke(null, itemRegistry, testId, testItem);
+                    System.out.println(MARKER + " IDRES2 REGISTER SUCCESS: "
+                            + (result != null ? result.getClass().getSimpleName() : "null"));
+                    targetedOk = true;
+
+                    Object readback = itemRegistry.getClass().getMethod("get", resLocClass)
+                            .invoke(itemRegistry, testId);
+                    System.out.println(MARKER + " IDRES2 readback identity: " + (readback == testItem)
+                            + " (" + readback + ")");
+                } catch (Throwable t) {
+                    System.out.println(MARKER + " IDRES2 FAILED: " + rootMessage(t));
+                    Throwable c = t;
+                    while ((c = c.getCause()) != null) {
+                        System.out.println(MARKER + "   caused by: " + c.getClass().getSimpleName()
+                                + ": " + c.getMessage());
+                        if (c.getStackTrace().length > 0) {
+                            System.out.println(MARKER + "   at " + c.getStackTrace()[0]);
+                        }
+                    }
+                }
+            }
+
+            // v26.19-A1 fallback: discover Item$Properties id-setting surface
+            // and Item's own id field, then adaptively try to construct an
+            // Item that carries its id (fixing v26.18's 'Item id not set').
+            if (!targetedOk) try {
+                Class<?> itemClass = Class.forName("net.minecraft.world.item.Item", true, cl);
+                Class<?> itemPropsClass = Class.forName("net.minecraft.world.item.Item$Properties", true, cl);
+
+                System.out.println(MARKER + " IDRES Item$Properties methods:");
+                java.util.List<java.lang.reflect.Method> propIdCandidates = new java.util.ArrayList<>();
+                for (java.lang.reflect.Method m : itemPropsClass.getMethods()) {
+                    if (m.getDeclaringClass() != itemPropsClass) {
+                        continue;
+                    }
+                    String n = m.getName().toLowerCase();
+                    boolean idish = n.contains("id") || n.contains("key") || n.contains("location")
+                            || n.contains("identifier") || n.contains("registryname");
+                    System.out.println(MARKER + "   PROPS -> " + m + (idish ? "  [idish]" : ""));
+                    if (idish && m.getParameterCount() == 1) {
+                        propIdCandidates.add(m);
+                    }
+                }
+
+                System.out.println(MARKER + " IDRES Item declared fields:");
+                for (java.lang.reflect.Field f : itemClass.getDeclaredFields()) {
+                    System.out.println(MARKER + "   FIELD -> " + f.getName() + " : "
+                            + f.getType().getName());
+                }
+
+                // Adaptive attempt 1: Properties setter with Identifier instance
+                boolean propsSet = false;
+                for (java.lang.reflect.Method m : propIdCandidates) {
+                    Class<?> pt = m.getParameterTypes()[0];
+                    try {
+                        if (testId != null && pt.isInstance(testId)) {
+                            Object props = itemPropsClass.getConstructor().newInstance();
+                            m.invoke(props, testId);
+                            System.out.println(MARKER + " IDRES Properties." + m.getName()
+                                    + "(Identifier) OK");
+                            Object testItem = itemClass.getConstructor(itemPropsClass).newInstance(props);
+                            attemptRegistration(itemRegistry, registryClass, testItem);
+                            propsSet = true;
+                            break;
+                        }
+                    } catch (Throwable t) {
+                        System.out.println(MARKER + "   Properties." + m.getName() + " attempt failed: "
+                                + rootMessage(t));
+                    }
+                }
+
+                // Adaptive attempt 2: direct Item field write
+                if (!propsSet) {
+                    System.out.println(MARKER + " IDRES falling back to direct Item field write");
+                    for (java.lang.reflect.Field f : itemClass.getDeclaredFields()) {
+                        String fn = f.getName().toLowerCase();
+                        if (!(fn.contains("id") || fn.contains("key") || fn.contains("identifier"))) {
+                            continue;
+                        }
+                        try {
+                            Object props = itemPropsClass.getConstructor().newInstance();
+                            Object testItem = itemClass.getConstructor(itemPropsClass).newInstance(props);
+                            f.setAccessible(true);
+                            if (testId != null && f.getType().isInstance(testId)) {
+                                f.set(testItem, testId);
+                                System.out.println(MARKER + " IDRES field " + f.getName() + " <- Identifier OK");
+                                attemptRegistration(itemRegistry, registryClass, testItem);
+                                propsSet = true;
+                                break;
+                            }
+                        } catch (Throwable t) {
+                            System.out.println(MARKER + "   field " + f.getName() + " attempt failed: "
+                                    + rootMessage(t));
+                        }
+                    }
+                }
+                if (!propsSet) {
+                    System.out.println(MARKER + " IDRES: no id-set path succeeded this run");
+                }
+            } catch (Throwable t) {
+                System.out.println(MARKER + " IDRES discovery FAILED: " + rootMessage(t));
             }
         } catch (Throwable t) {
             System.out.println(MARKER + " SETUP REGISTRY PROOF FAILED: "
@@ -188,5 +329,30 @@ public class FallenTrees implements IAprismMod {
         // own tick callback stays observer-only to keep this loader-neutral.
         System.out.println(MARKER + " COMPLETE placement verification window open;"
                 + " awaiting RCON 'place feature fallentrees:fallen_oak_markers'");
+    }
+
+    /**
+     * Attempts Registry.register() with the given Item instance using the
+     * String-keyed overload and reports the outcome with full cause chain.
+     */
+    private void attemptRegistration(Object itemRegistry, Class<?> registryClass, Object testItem) {
+        try {
+            java.lang.reflect.Method stringRegister = registryClass.getMethod("register",
+                    registryClass, String.class, Object.class);
+            Object result = stringRegister.invoke(null, itemRegistry, "fallentrees:test_item", testItem);
+            System.out.println(MARKER + " IDRES REGISTER INVOKED OK"
+                    + " (result: " + (result != null ? result.getClass().getSimpleName() : "null") + ")");
+        } catch (Throwable t) {
+            System.out.println(MARKER + " IDRES register attempt FAILED: " + rootMessage(t));
+        }
+    }
+
+    /** Unwraps reflective invocation chains down to the root cause message. */
+    private static String rootMessage(Throwable t) {
+        Throwable c = t;
+        while (c.getCause() != null) {
+            c = c.getCause();
+        }
+        return c.getClass().getSimpleName() + ": " + c.getMessage();
     }
 }
