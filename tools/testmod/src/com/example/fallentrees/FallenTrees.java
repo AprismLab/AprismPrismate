@@ -106,6 +106,75 @@ public class FallenTrees implements IAprismMod {
                         + " UNREACHABLE (" + t.getClass().getSimpleName() + ")");
             }
         }
+
+        // v26.18-A1 reflective content-binding proof: can we not only SEE
+        // the registry API but actually INVOKE it via reflection? This
+        // confirms the bridge from 'classloader reachable' to 'usable'.
+        try {
+            Class<?> builtInRegistries = Class.forName("net.minecraft.core.registries.BuiltInRegistries", true, cl);
+            Class<?> registryClass = Class.forName("net.minecraft.core.Registry", true, cl);
+            java.lang.reflect.Field itemRegField = builtInRegistries.getField("ITEM");
+            Object itemRegistry = itemRegField.get(null);
+            System.out.println(MARKER + " SETUP REGISTRY PROOF: BuiltInRegistries.ITEM resolved ("
+                    + itemRegistry.getClass().getSimpleName() + ")");
+
+            // Verify register() method is accessible
+            java.lang.reflect.Method[] allMethods = registryClass.getMethods();
+            java.util.List<java.lang.reflect.Method> registerMethods = new java.util.ArrayList<>();
+            for (java.lang.reflect.Method m : allMethods) {
+                if (m.getName().equals("register")) {
+                    registerMethods.add(m);
+                }
+            }
+            System.out.println(MARKER + " SETUP REGISTRY PROOF: Registry.register() candidates: "
+                    + registerMethods.size());
+            for (java.lang.reflect.Method m : registerMethods) {
+                System.out.println(MARKER + "   -> " + m);
+            }
+
+            // Discover Identifier constructors
+            Class<?> resLocClass = Class.forName("net.minecraft.resources.Identifier", true, cl);
+            java.lang.reflect.Constructor<?>[] ctors = resLocClass.getConstructors();
+            System.out.println(MARKER + " SETUP REGISTRY PROOF: Identifier constructors: " + ctors.length);
+            for (java.lang.reflect.Constructor<?> c : ctors) {
+                System.out.println(MARKER + "   -> " + c);
+            }
+
+            // v26.18-A1: attempt actual item registration via reflection
+            // Use Registry.register(Registry, String, Object) overload
+            try {
+                Class<?> itemClass = Class.forName("net.minecraft.world.item.Item", true, cl);
+                Class<?> itemPropsClass = Class.forName("net.minecraft.world.item.Item$Properties", true, cl);
+                java.lang.reflect.Constructor<?> propsCtor = itemPropsClass.getConstructor();
+                Object props = propsCtor.newInstance();
+                java.lang.reflect.Constructor<?> itemCtor = itemClass.getConstructor(itemPropsClass);
+                Object testItem = itemCtor.newInstance(props);
+                System.out.println(MARKER + " SETUP REGISTRY PROOF: Item instance created: "
+                        + testItem.getClass().getName());
+
+                // Register via String overload
+                java.lang.reflect.Method stringRegister = registryClass.getMethod("register",
+                        registryClass, String.class, Object.class);
+                Object result = stringRegister.invoke(null, itemRegistry, "fallentrees:test_item", testItem);
+                System.out.println(MARKER + " SETUP REGISTRY PROOF: Registry.register() INVOKED OK"
+                        + " (result: " + (result != null ? result.getClass().getSimpleName() : "null") + ")");
+                System.out.println(MARKER + " SETUP REGISTRY PROOF: ALL PATHS VERIFIED (reflection bridge viable)");
+            } catch (Throwable t) {
+                System.out.println(MARKER + " SETUP REGISTRY PROOF FAILED: "
+                        + t.getClass().getSimpleName() + ": " + t.getMessage());
+                Throwable cause = t;
+                while ((cause = cause.getCause()) != null) {
+                    System.out.println(MARKER + "   caused by: " + cause.getClass().getSimpleName()
+                            + ": " + cause.getMessage());
+                    if (cause.getStackTrace().length > 0) {
+                        System.out.println(MARKER + "   at " + cause.getStackTrace()[0]);
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            System.out.println(MARKER + " SETUP REGISTRY PROOF FAILED: "
+                    + t.getClass().getSimpleName() + ": " + t.getMessage());
+        }
     }
 
     @Override
